@@ -1,4 +1,4 @@
-# SCAM — Sistema de Controle de Instrumentos Cirúrgicos
+# scanOPS — Sistema de Controle de Instrumentos Cirúrgicos
 
 Sistema que ajuda a evitar que instrumentos cirúrgicos sejam esquecidos dentro do paciente. A conferência usa **duas métricas ao mesmo tempo**: peso (balança) e reconhecimento por imagem (câmera).
 
@@ -24,7 +24,7 @@ React (Vite) ──HTTP/JSON──> API em C# ──> balança, câmera, banco d
 ## Estrutura do projeto
 
 ```
-SCAM/
+scanOPS/
 ├── banco de dados/   # persistência
 ├── Cirurgias/        # cirurgia e seu status
 ├── Contagem/         # contagem e itens contados
@@ -35,7 +35,7 @@ SCAM/
 ├── servicos/         # regras de negócio
 ├── frontend/         # aplicação React (Vite)
 ├── Program.cs
-└── SCAM.csproj
+└── scanOPS.csproj
 ```
 
 ## Como executar
