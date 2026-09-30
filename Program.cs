@@ -1,1 +1,1 @@
-﻿Console.WriteLine("Hello, World!");
+﻿scanOPS.Servicos.Demonstracao.Executar();
