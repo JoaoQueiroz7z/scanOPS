@@ -1,1 +1,1 @@
-﻿scanOPS.Servicos.Demonstracao.Executar();
+﻿ScanOPS.Servicos.Demonstracao.Executar();
