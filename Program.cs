@@ -33,5 +33,43 @@ app.MapPost("/api/login", (LoginRequest dados) =>
 
 app.Run();
 
+var pacientes = new List<Paciente>();
+
+app.MapGet("/api/pacientes", () => pacientes);
+
+app.MapGet("/api/pacientes/{id}", (Guid id) =>
+{
+    var item = pacientes.FirstOrDefault(p => p.Id == id);
+    return item is null ? Results.NotFound() : Results.Ok(item);
+});
+
+app.MapPost("/api/pacientes", (Paciente novo) =>
+{
+    pacientes.Add(novo);
+    return Results.Created($"/api/pacientes/{novo.Id}", novo);
+});
+
+app.MapPut("/api/pacientes/{id}", (Guid id, Paciente dados) =>
+{
+    var item = pacientes.FirstOrDefault(p => p.Id == id);
+    if (item is null) return Results.NotFound();
+
+    item.EditarDados(dados.Nome, dados.Alergias, dados.Observacoes);
+    item.DataNascimento = dados.DataNascimento;
+    item.Sexo = dados.Sexo;
+    item.TipoSanguineo = dados.TipoSanguineo;
+
+    return Results.Ok(item);
+});
+
+app.MapDelete("/api/pacientes/{id}", (Guid id) =>
+{
+    var item = pacientes.FirstOrDefault(p => p.Id == id);
+    if (item is null) return Results.NotFound();
+
+    pacientes.Remove(item);
+    return Results.NoContent();
+});
+
 // Formato que o front vai enviar
 record LoginRequest(string Email, string Senha);
