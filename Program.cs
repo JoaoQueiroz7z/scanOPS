@@ -1,4 +1,5 @@
-﻿using ScanOPS.Instrumentos;
+﻿using ScanOPS.Cirurgias;
+using ScanOPS.Instrumentos;
 using ScanOPS.Pessoas;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -115,8 +116,77 @@ app.MapDelete("/api/pacientes/{id}", (Guid id) =>
     return Results.NoContent();
 });
 
+// ===================== PROCEDIMENTO DE DEMONSTRAÇÃO =====================
+
+var procedimentoAtivo = new Procedimento
+{
+    Tipo = "Apendicectomia",
+    Sala = "Sala 1",
+    Paciente = new Paciente { Nome = "Paciente Demo" },
+    Cirurgiao = usuario,
+    Instrumentista = usuario
+};
+procedimentoAtivo.AdicionarInstrumento(pinca, 2);
+procedimentoAtivo.AdicionarInstrumento(tesoura, 1);
+procedimentoAtivo.Iniciar();
+
+app.MapGet("/api/procedimento-atual", () => new
+{
+    procedimentoAtivo.Id,
+    procedimentoAtivo.Tipo,
+    Status = procedimentoAtivo.Status.ToString(),
+    Itens = procedimentoAtivo.Itens.Select(i => new
+    {
+        i.Id,
+        Instrumento = i.Instrumento.Nome,
+        i.QuantidadePrevista,
+        i.QuantidadeInicial,
+        i.QuantidadeFinal,
+        i.Diferenca,
+        i.PesoMedido,
+        i.IdentificadoPorCamera,
+        Status = i.Status.ToString()
+    })
+});
+
+app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequest dados) =>
+{
+    var item = procedimentoAtivo.Itens.FirstOrDefault(i => i.Id == itemId);
+    if (item is null) return Results.NotFound();
+
+    item.RegistrarEntrada(dados.Quantidade);
+    return Results.Ok();
+});
+
+app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequest dados) =>
+{
+    var item = procedimentoAtivo.Itens.FirstOrDefault(i => i.Id == itemId);
+    if (item is null) return Results.NotFound();
+
+    item.RegistrarSaida(dados.Quantidade);
+    item.PesoMedido = dados.PesoMedido;
+    item.IdentificadoPorCamera = dados.IdentificadoPorCamera;
+    return Results.Ok();
+});
+
+app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequest dados) =>
+{
+    try
+    {
+        procedimentoAtivo.Finalizar(dados.Justificativa);
+        return Results.Ok(new { status = procedimentoAtivo.Status.ToString() });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { erro = ex.Message });
+    }
+});
+
 app.Run();
 
 // ===================== REGISTROS AUXILIARES =====================
 
 record LoginRequest(string Email, string Senha);
+record EntradaRequest(int Quantidade);
+record SaidaRequest(int Quantidade, decimal PesoMedido, bool IdentificadoPorCamera);
+record FinalizarRequest(string? Justificativa);
