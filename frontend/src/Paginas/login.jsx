@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const navigate = useNavigate();
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -22,7 +24,7 @@ export default function Login() {
       }
 
       const dados = await resposta.json();
-      console.log("Login ok:", dados);
+      navigate("/visao-geral");
       // próximo passo: salvar o usuário logado e trocar de tela
     } catch {
       setErro("Não foi possível conectar ao servidor.");
