@@ -1,5 +1,10 @@
 # scanOPS — Sistema de Controle de Instrumentos Cirúrgicos
 
+CADASTRO 
+
+Usuário/e-mail: medico@scanops.com
+Senha: 123456
+
 Sistema que ajuda a evitar que instrumentos cirúrgicos sejam esquecidos dentro do paciente. A conferência usa **duas métricas ao mesmo tempo**: peso (balança) e reconhecimento por imagem (câmera).
 
 > 🚧 Projeto acadêmico em desenvolvimento.
