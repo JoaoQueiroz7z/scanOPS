@@ -79,6 +79,10 @@ Acesse `http://localhost:5173`.
 - [ ] Banco de dados
 - [ ] Relatórios
 
-## Autor
+## Autores
 
-João Victor — Ciência da Computação, UNIFESO
+João Victor Faria de Queiroz - 06013779
+Romulo Guedes Medeiros Junior - 06014807
+Luiz Eduardo Ferreira Araujo - 06014155
+Arthur Jorge de Godoy Silva - 060013964 
+
