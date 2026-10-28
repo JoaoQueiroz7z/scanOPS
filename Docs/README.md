@@ -84,5 +84,6 @@ Acesse `http://localhost:5173`.
 João Victor Faria de Queiroz - 06013779
 Romulo Guedes Medeiros Junior - 06014807
 Luiz Eduardo Ferreira Araujo - 06014155
-Arthur Jorge de Godoy Silva - 060013964 
+Arthur Jorge de Godoy Silva - 06013964
+Thiago de Lima Ramos - 06014301
 
