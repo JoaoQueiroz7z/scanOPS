@@ -190,3 +190,5 @@ record LoginRequest(string Email, string Senha);
 record EntradaRequest(int Quantidade);
 record SaidaRequest(int Quantidade, decimal PesoMedido, bool IdentificadoPorCamera);
 record FinalizarRequest(string? Justificativa);
+// Torna a classe Program visível para os testes de integração (WebApplicationFactory).
+public partial class Program { }

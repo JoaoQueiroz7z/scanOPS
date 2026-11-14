@@ -1,0 +1,9 @@
+  Com falha ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_QuantidadeNegativa_RetornaBadRequest [461 ms]
+   Assert.Equal() Failure: Values differ
+Expected: BadRequest
+Actual:   OK
+  Com falha ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_DepoisDeFinalizado_RetornaBadRequestENaoAlteraContagem [68 ms]
+   Assert.Equal() Failure: Values differ
+Expected: BadRequest
+Actual:   OK
+Com falha! – Com falha:     2, Aprovado:     2, Ignorado:     0, Total:     4, Duração: 554 ms - ScanOPS.Tests.dll (net10.0)
