@@ -44,8 +44,11 @@ scanOPS/
 ├── Servicos/       # demonstração do fluxo
 ├── docs/           # arquitetura, decisões (ADR) e roadmap
 ├── frontend/       # aplicação React (Vite)
+├── tests/
+│   └── ScanOPS.Tests/  # testes automatizados (xUnit)
 ├── Program.cs      # API (rotas)
-└── scanOPS.csproj
+├── scanOPS.csproj  # projeto da API
+└── scanOPS.sln     # solução: agrupa API + testes
 ```
 
 ## Como executar
@@ -55,6 +58,13 @@ Pré-requisitos: [.NET SDK 10](https://dotnet.microsoft.com/download) e [Node.js
 ```bash
 git clone https://github.com/JoaoQueiroz7z/scanOPS.git
 cd scanOPS
+```
+
+**Compilar e testar** (na raiz do repositório):
+
+```bash
+dotnet build   # compila a API e o projeto de testes (usa scanOPS.sln)
+dotnet test    # roda todos os testes automatizados
 ```
 
 **Back-end** (terminal 1):
@@ -83,7 +93,7 @@ Acesse `http://localhost:5173`.
 - [x] API com rotas de login, instrumentos, pacientes e procedimento em andamento (dados em memória)
 - [x] Front-end React com as telas principais
 - [x] Hardware simulado (balança e câmera)
-- [ ] Testes automatizados
+- [x] Projeto de testes automatizados (xUnit) em `tests/ScanOPS.Tests`
 - [ ] Banco de dados (os dados ainda ficam apenas em memória)
 - [ ] Integração com balança e câmera reais
 - [ ] Geração de relatório em PDF
