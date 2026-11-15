@@ -1,4 +1,5 @@
 using ScanOPS.Cirurgias;
+using ScanOPS.Excecoes;
 using ScanOPS.Pessoas;
 
 namespace ScanOPS.Relatorios;
@@ -23,7 +24,7 @@ public class Relatorio
     public void AssinarCirurgiao(Usuario cirurgiao)
     {
         if (cirurgiao.Cargo != TipoUsuario.Cirurgiao)
-            throw new InvalidOperationException("Somente um cirurgião pode assinar aqui.");
+            throw new RegraDeNegocioException("Somente um cirurgião pode assinar aqui.");
 
         StatusAssinatura = StatusAssinatura == StatusAssinatura.AssinadoInstrumentista
             ? StatusAssinatura.AssinadoCompleto
@@ -33,7 +34,7 @@ public class Relatorio
     public void AssinarInstrumentista(Usuario instrumentista)
     {
         if (instrumentista.Cargo != TipoUsuario.Instrumentista)
-            throw new InvalidOperationException("Somente um instrumentista pode assinar aqui.");
+            throw new RegraDeNegocioException("Somente um instrumentista pode assinar aqui.");
 
         StatusAssinatura = StatusAssinatura == StatusAssinatura.AssinadoCirurgiao
             ? StatusAssinatura.AssinadoCompleto

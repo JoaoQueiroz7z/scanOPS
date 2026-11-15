@@ -1,6 +1,9 @@
-﻿using ScanOPS.Cirurgias;
+﻿using ScanOPS.Api;
+using ScanOPS.Cirurgias;
+using ScanOPS.Hardware;
 using ScanOPS.Instrumentos;
 using ScanOPS.Pessoas;
+using ScanOPS.Servicos;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,7 +11,16 @@ builder.Services.AddCors(o => o.AddPolicy("front", p =>
     p.WithOrigins("http://localhost:5173", "http://localhost:5174")
      .AllowAnyHeader().AllowAnyMethod()));
 
+// Tratamento central de exceções (ver Api/TratadorDeExcecoes.cs).
+builder.Services.AddExceptionHandler<TratadorDeExcecoes>();
+builder.Services.AddProblemDetails();
+
+// Hardware atrás de interface: as rotas dependem de IBalanca, não da classe concreta.
+builder.Services.AddSingleton<IBalanca, BalancaSimulada>();
+builder.Services.AddSingleton<ServicoDePesagem>();
+
 var app = builder.Build();
+app.UseExceptionHandler();
 app.UseCors("front");
 
 // ===================== USUÁRIOS (login) =====================
@@ -149,51 +161,31 @@ app.MapGet("/api/procedimento-atual", () => new
     })
 });
 
+// As rotas não capturam exceções: o domínio lança e o TratadorDeExcecoes responde
+// (RegraDeNegocioException -> 400, KeyNotFoundException -> 404, FalhaDeHardwareException -> 503).
+
 app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequest dados) =>
 {
-    try
-    {
-        procedimentoAtivo.RegistrarEntrada(itemId, dados.Quantidade);
-        return Results.Ok();
-    }
-    catch (KeyNotFoundException)
-    {
-        return Results.NotFound();
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Results.BadRequest(new { erro = ex.Message });
-    }
+    procedimentoAtivo.RegistrarEntrada(itemId, dados.Quantidade);
+    return Results.Ok();
 });
 
 app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequest dados) =>
 {
-    try
-    {
-        procedimentoAtivo.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
-        return Results.Ok();
-    }
-    catch (KeyNotFoundException)
-    {
-        return Results.NotFound();
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Results.BadRequest(new { erro = ex.Message });
-    }
+    procedimentoAtivo.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
+    return Results.Ok();
+});
+
+app.MapPost("/api/procedimento-atual/itens/{itemId}/pesar", (Guid itemId, ServicoDePesagem pesagem) =>
+{
+    var peso = pesagem.PesarItem(procedimentoAtivo, itemId);
+    return Results.Ok(new { pesoMedido = peso });
 });
 
 app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequest dados) =>
 {
-    try
-    {
-        procedimentoAtivo.Finalizar(dados.Justificativa);
-        return Results.Ok(new { status = procedimentoAtivo.Status.ToString() });
-    }
-    catch (InvalidOperationException ex)
-    {
-        return Results.BadRequest(new { erro = ex.Message });
-    }
+    procedimentoAtivo.Finalizar(dados.Justificativa);
+    return Results.Ok(new { status = procedimentoAtivo.Status.ToString() });
 });
 
 app.Run();

@@ -1,4 +1,5 @@
 using ScanOPS.Cirurgias;
+using ScanOPS.Excecoes;
 using ScanOPS.Hardware;
 using ScanOPS.Instrumentos;
 using ScanOPS.Pessoas;
@@ -48,7 +49,7 @@ public static class Demonstracao
         {
             procedimento.Finalizar();
         }
-        catch (InvalidOperationException erro)
+        catch (RegraDeNegocioException erro)
         {
             Console.WriteLine($"ALERTA: {erro.Message}");
         }
