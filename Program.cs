@@ -146,6 +146,58 @@ app.MapDelete("/api/pacientes/{id}", (Guid id, ScanOpsDbContext db) =>
     return Results.NoContent();
 });
 
+// ===================== PROCEDIMENTOS (planejar, iniciar, cancelar) =====================
+
+app.MapPost("/api/procedimentos", (NovoProcedimentoRequisicao dados, ScanOpsDbContext db, IRepositorioDeProcedimentos repositorio) =>
+{
+    var procedimento = new Procedimento
+    {
+        Tipo = dados.Tipo,
+        Sala = dados.Sala,
+        Descricao = dados.Descricao ?? "",
+        Paciente = db.Pacientes.Find(dados.PacienteId)
+            ?? throw new KeyNotFoundException("Paciente não encontrado."),
+        Cirurgiao = db.Usuarios.Find(dados.CirurgiaoId)
+            ?? throw new KeyNotFoundException("Cirurgião não encontrado."),
+        Instrumentista = db.Usuarios.Find(dados.InstrumentistaId)
+            ?? throw new KeyNotFoundException("Instrumentista não encontrado.")
+    };
+
+    foreach (var previsto in dados.Itens ?? [])
+    {
+        var instrumento = db.Instrumentos.Find(previsto.InstrumentoId)
+            ?? throw new KeyNotFoundException("Instrumento não encontrado.");
+        procedimento.AdicionarInstrumento(instrumento, previsto.QuantidadePrevista);
+    }
+
+    repositorio.Adicionar(procedimento);
+    repositorio.Salvar();
+    return Results.Created($"/api/procedimentos/{procedimento.Id}", ProcedimentoResposta.De(procedimento));
+});
+
+static Procedimento ObterPorId(IRepositorioDeProcedimentos repositorio, Guid id) =>
+    repositorio.ObterPorId(id) ?? throw new KeyNotFoundException("Procedimento não encontrado.");
+
+app.MapGet("/api/procedimentos/{id}", (Guid id, IRepositorioDeProcedimentos repositorio) =>
+    ProcedimentoResposta.De(ObterPorId(repositorio, id)));
+
+// RN1: só inicia se Planejado. Depois de iniciado, passa a ser o "procedimento atual".
+app.MapPost("/api/procedimentos/{id}/iniciar", (Guid id, IRepositorioDeProcedimentos repositorio) =>
+{
+    var procedimento = ObterPorId(repositorio, id);
+    procedimento.Iniciar();
+    repositorio.Salvar();
+    return Results.Ok(ProcedimentoResposta.De(procedimento));
+});
+
+app.MapPost("/api/procedimentos/{id}/cancelar", (Guid id, CancelarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
+{
+    var procedimento = ObterPorId(repositorio, id);
+    procedimento.Cancelar(dados.Motivo);
+    repositorio.Salvar();
+    return Results.Ok(ProcedimentoResposta.De(procedimento));
+});
+
 // ===================== PROCEDIMENTO ATUAL =====================
 // Cada rota: carrega o agregado pelo repositório -> chama o método de domínio
 // (que aplica as regras RN1..RN5) -> grava. Se o domínio recusar, nada é gravado.

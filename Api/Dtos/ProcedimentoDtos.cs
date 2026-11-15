@@ -3,6 +3,22 @@ using ScanOPS.Contagens;
 
 namespace ScanOPS.Api.Dtos;
 
+// ---------- criação e ciclo de vida (rotas /api/procedimentos) ----------
+
+public record ItemPrevistoRequisicao(Guid InstrumentoId, int QuantidadePrevista);
+
+/// <summary>Dados para planejar um procedimento. Ele nasce Planejado; o início é uma ação separada (RN1).</summary>
+public record NovoProcedimentoRequisicao(
+    string Tipo,
+    string Sala,
+    string? Descricao,
+    Guid PacienteId,
+    Guid CirurgiaoId,
+    Guid InstrumentistaId,
+    IReadOnlyList<ItemPrevistoRequisicao> Itens);
+
+public record CancelarRequisicao(string Motivo);
+
 // ---------- requisições das rotas do procedimento atual ----------
 
 public record EntradaRequisicao(int Quantidade);
