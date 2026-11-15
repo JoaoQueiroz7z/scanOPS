@@ -1,0 +1,10 @@
+# Polimorfismo na aplicação real: mesma rota POST /pesar, mesmo ServicoDePesagem, balança escolhida por configuração (2026-11-14 23:08:35)
+# Prato vazio nas duas execuções (a API não tem rota para simular peso sobre o prato).
+## Balanca__Tipo=Simulada
+{"pesoMedido":0}  -> HTTP 200
+{"pesoMedido":0}  -> HTTP 200
+{"pesoMedido":0}  -> HTTP 200
+## Balanca__Tipo=ComRuido
+{"pesoMedido":0}  -> HTTP 200
+{"pesoMedido":0}  -> HTTP 200
+{"pesoMedido":1.4}  -> HTTP 200

@@ -16,7 +16,8 @@ builder.Services.AddExceptionHandler<TratadorDeExcecoes>();
 builder.Services.AddProblemDetails();
 
 // Hardware atrás de interface: as rotas dependem de IBalanca, não da classe concreta.
-builder.Services.AddSingleton<IBalanca, BalancaSimulada>();
+// A implementação (BalancaSimulada ou BalancaComRuido) vem de appsettings.json -> "Balanca:Tipo".
+builder.Services.AdicionarBalanca(builder.Configuration);
 builder.Services.AddSingleton<ServicoDePesagem>();
 
 var app = builder.Build();
