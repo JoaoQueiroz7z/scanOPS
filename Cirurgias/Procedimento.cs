@@ -1,4 +1,5 @@
 using ScanOPS.Contagens;
+using ScanOPS.Excecoes;
 using ScanOPS.Instrumentos;
 using ScanOPS.Pessoas;
 using ScanOPS.Relatorios;
@@ -25,7 +26,7 @@ public class Procedimento
     public void Iniciar()
     {
         if (Status != StatusProcedimento.Planejado)
-            throw new InvalidOperationException("Só é possível iniciar um procedimento planejado.");
+            throw new RegraDeNegocioException("Só é possível iniciar um procedimento planejado.");
 
         Status = StatusProcedimento.EmAndamento;
         DataHoraInicio = DateTime.Now;
@@ -34,7 +35,7 @@ public class Procedimento
     public void Finalizar(string? justificativa = null)
     {
         if (Status != StatusProcedimento.EmAndamento)
-            throw new InvalidOperationException("Só é possível finalizar um procedimento em andamento.");
+            throw new RegraDeNegocioException("Só é possível finalizar um procedimento em andamento.");
 
         foreach (var item in Itens)
             item.Conferir();
@@ -42,7 +43,7 @@ public class Procedimento
         if (ObterDiferencas().Count > 0)
         {
             if (string.IsNullOrWhiteSpace(justificativa))
-                throw new InvalidOperationException(
+                throw new RegraDeNegocioException(
                     "Há divergências na contagem. Informe uma justificativa para finalizar.");
 
             Observacoes = $"{Observacoes}\n[Justificativa] {justificativa}".Trim();
@@ -67,7 +68,7 @@ public class Procedimento
     {
         GarantirContagemPermitida();
         if (quantidade <= 0)
-            throw new InvalidOperationException("A quantidade de entrada deve ser maior que zero.");
+            throw new RegraDeNegocioException("A quantidade de entrada deve ser maior que zero.");
 
         ObterItem(itemId).RegistrarEntrada(quantidade);
     }
@@ -76,7 +77,7 @@ public class Procedimento
     {
         GarantirContagemPermitida();
         if (quantidade < 0)
-            throw new InvalidOperationException("A quantidade de saída não pode ser negativa.");
+            throw new RegraDeNegocioException("A quantidade de saída não pode ser negativa.");
 
         var item = ObterItem(itemId);
         item.RegistrarSaida(quantidade);
@@ -84,10 +85,19 @@ public class Procedimento
         item.IdentificadoPorCamera = identificadoPorCamera;
     }
 
+    public void RegistrarPeso(Guid itemId, decimal pesoMedido)
+    {
+        GarantirContagemPermitida();
+        if (pesoMedido < 0)
+            throw new RegraDeNegocioException("O peso medido não pode ser negativo.");
+
+        ObterItem(itemId).PesoMedido = pesoMedido;
+    }
+
     private void GarantirContagemPermitida()
     {
         if (Status != StatusProcedimento.EmAndamento)
-            throw new InvalidOperationException("Só é possível registrar contagem em procedimento em andamento.");
+            throw new RegraDeNegocioException("Só é possível registrar contagem em procedimento em andamento.");
     }
 
     private ItemProcedimento ObterItem(Guid itemId)

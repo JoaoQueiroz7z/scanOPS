@@ -1,0 +1,24 @@
+# Caminho das exceções na API real (2026-11-14 22:20:28)
+# Fluxo: domínio lança -> exceção sobe pela rota (sem try/catch) -> TratadorDeExcecoes responde e registra no log.
+## 1) Pesar item com a balança simulada (sucesso; a simulada começa em 0 g)
+{"pesoMedido":0}  -> HTTP 200
+## 2) Item inexistente, procedimento em andamento (esperado 404)
+{"erro":"Item não encontrado no procedimento."}  -> HTTP 404
+## 3) Entrada 2 e saída 1 (falta 1 instrumento)
+entrada -> HTTP 200; saida -> HTTP 200
+## 4) F1: finalizar com divergência e sem justificativa (esperado 400)
+{"erro":"Há divergências na contagem. Informe uma justificativa para finalizar."}  -> HTTP 400
+## 5) Finalizar com justificativa (esperado 200)
+{"status":"Finalizado"}  -> HTTP 200
+## 6) F2: saída depois de finalizado (esperado 400)
+{"erro":"Só é possível registrar contagem em procedimento em andamento."}  -> HTTP 400
+## F3 (balança indisponível -> 503) não ocorre com a balança simulada; é verificada por
+##   tests/ScanOPS.Tests/Excecoes/SituacoesDeFalhaTests.cs (F3_Api_ErroNaBalanca_Retorna503ComMensagemGenericaSemDetalhesInternos).
+
+## Log do servidor (registrado pelo TratadorDeExcecoes)
+warn: ScanOPS.Api.TratadorDeExcecoes[0]
+      Pedido recusado em POST /api/procedimento-atual/itens/00000000-0000-0000-0000-000000000000/entrada: Item não encontrado no procedimento.
+warn: ScanOPS.Api.TratadorDeExcecoes[0]
+      Pedido recusado em POST /api/procedimento-atual/finalizar: Há divergências na contagem. Informe uma justificativa para finalizar.
+warn: ScanOPS.Api.TratadorDeExcecoes[0]
+      Pedido recusado em POST /api/procedimento-atual/itens/1dbd6ac3-44fe-4344-b6c6-a4cfe742f652/saida: Só é possível registrar contagem em procedimento em andamento.

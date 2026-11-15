@@ -1,4 +1,5 @@
 using ScanOPS.Cirurgias;
+using ScanOPS.Excecoes;
 using ScanOPS.Instrumentos;
 
 namespace ScanOPS.Tests.Dominio;
@@ -47,7 +48,7 @@ public class ProcedimentoContagemTests
         var item = procedimento.Itens[0];
         procedimento.Finalizar();
 
-        Assert.Throws<InvalidOperationException>(() => procedimento.RegistrarEntrada(item.Id, 3));
+        Assert.Throws<RegraDeNegocioException>(() => procedimento.RegistrarEntrada(item.Id, 3));
 
         Assert.Equal(0, item.QuantidadeInicial);
         Assert.Equal(StatusProcedimento.Finalizado, procedimento.Status);
@@ -60,7 +61,7 @@ public class ProcedimentoContagemTests
         procedimento.AdicionarInstrumento(new Instrumento { Nome = "Tesoura Mayo", PesoReferencia = 80m }, 1);
         var item = procedimento.Itens[0];
 
-        Assert.Throws<InvalidOperationException>(() => procedimento.RegistrarSaida(item.Id, 1, 80m, true));
+        Assert.Throws<RegraDeNegocioException>(() => procedimento.RegistrarSaida(item.Id, 1, 80m, true));
 
         Assert.Equal(0, item.QuantidadeFinal);
     }
@@ -73,7 +74,7 @@ public class ProcedimentoContagemTests
         var procedimento = CriarEmAndamento();
         var item = procedimento.Itens[0];
 
-        Assert.Throws<InvalidOperationException>(() => procedimento.RegistrarEntrada(item.Id, quantidade));
+        Assert.Throws<RegraDeNegocioException>(() => procedimento.RegistrarEntrada(item.Id, quantidade));
 
         Assert.Equal(0, item.QuantidadeInicial);
     }
@@ -84,7 +85,7 @@ public class ProcedimentoContagemTests
         var procedimento = CriarEmAndamento();
         var item = procedimento.Itens[0];
 
-        Assert.Throws<InvalidOperationException>(() => procedimento.RegistrarSaida(item.Id, -1, 0m, false));
+        Assert.Throws<RegraDeNegocioException>(() => procedimento.RegistrarSaida(item.Id, -1, 0m, false));
 
         Assert.Equal(0, item.QuantidadeFinal);
     }
