@@ -1,0 +1,13 @@
+# Persistência em SQLite: o dado sobrevive ao reinício da API (2026-11-14 23:31:49)
+## 0) Antes de subir a API: existe scanops.db?
+não existe (banco ainda não criado)
+## 1) API iniciada pela 1ª vez: banco criado automaticamente
+4096 bytes  scanops.db
+## 2) Registrar entrada de 2 unidades no 1º item
+-> HTTP 200
+## 3) Estado antes de desligar
+{"id":"400492d6-ab38-48cd-817f-f34275998c6e","tipo":"Apendicectomia","status":"EmAndamento","itens":[{"id":"ce3c2d70-a904-48af-a16d-12499b44ca5e","instrumento":"Pinça Kelly","quantidadePrevista":2,"quantidadeInicial":2,"quantidadeFinal":0,"diferenca":2,"pesoMedido":0.0,"identificadoPorCamera":false,"status":"Pendente"},{"id":"1939c94d-eb70-4485-aa19-344722ff2dbc","instrumento":"Tesoura Mayo","quantidadePrevista":1,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0.0,"identificadoPorCamera":false,"status":"Pendente"}]}
+## 4) API DESLIGADA e iniciada de novo: estado lido do banco
+{"id":"400492d6-ab38-48cd-817f-f34275998c6e","tipo":"Apendicectomia","status":"EmAndamento","itens":[{"id":"ce3c2d70-a904-48af-a16d-12499b44ca5e","instrumento":"Pinça Kelly","quantidadePrevista":2,"quantidadeInicial":2,"quantidadeFinal":0,"diferenca":2,"pesoMedido":0.0,"identificadoPorCamera":false,"status":"Pendente"},{"id":"1939c94d-eb70-4485-aa19-344722ff2dbc","instrumento":"Tesoura Mayo","quantidadePrevista":1,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0.0,"identificadoPorCamera":false,"status":"Pendente"}]}
+## 5) Regra continua valendo sobre o dado persistido: quantidade -1 (esperado 400)
+{"erro":"A quantidade de entrada deve ser maior que zero."}  -> HTTP 400

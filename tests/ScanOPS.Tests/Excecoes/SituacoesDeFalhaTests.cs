@@ -13,6 +13,8 @@ using ScanOPS.Instrumentos;
 using ScanOPS.Servicos;
 using ScanOPS.Tests.Dubles;
 
+using ScanOPS.Tests.Infra;
+
 namespace ScanOPS.Tests.Excecoes;
 
 /// <summary>
@@ -40,9 +42,9 @@ public class SituacoesDeFalhaTests
         return json.GetProperty("itens")[0].GetProperty("id").GetGuid();
     }
 
-    private static WebApplicationFactory<Program> ApiComBalanca(IBalanca balanca)
+    private static ApiDeTeste ApiComBalanca(IBalanca balanca)
     {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+        return new ApiDeTeste(b =>
             b.ConfigureTestServices(servicos =>
             {
                 servicos.RemoveAll<IBalanca>();
@@ -70,7 +72,7 @@ public class SituacoesDeFalhaTests
     [Fact]
     public async Task F1_Api_FinalizarComDivergenciaSemJustificativa_Retorna400ComMensagemDaRegra()
     {
-        using var fabrica = new WebApplicationFactory<Program>();
+        using var fabrica = new ApiDeTeste();
         var cliente = fabrica.CreateClient();
         var itemId = await PrimeiroItemAsync(cliente);
         await cliente.PostAsJsonAsync($"{Api}/itens/{itemId}/entrada", new { quantidade = 2 });
@@ -103,7 +105,7 @@ public class SituacoesDeFalhaTests
     [Fact]
     public async Task F2_Api_RegistrarSaidaAposFinalizar_Retorna400ComMensagemDaRegra()
     {
-        using var fabrica = new WebApplicationFactory<Program>();
+        using var fabrica = new ApiDeTeste();
         var cliente = fabrica.CreateClient();
         var itemId = await PrimeiroItemAsync(cliente);
         await cliente.PostAsJsonAsync($"{Api}/finalizar", new { justificativa = (string?)null });

@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 
+using ScanOPS.Tests.Infra;
+
 namespace ScanOPS.Tests.Api;
 
 /// <summary>
@@ -23,7 +25,7 @@ public class ContagemAposFinalizarTests
     [Fact]
     public async Task RegistrarEntrada_DepoisDeFinalizado_RetornaBadRequestENaoAlteraContagem()
     {
-        using var fabrica = new WebApplicationFactory<Program>();
+        using var fabrica = new ApiDeTeste();
         var cliente = fabrica.CreateClient();
         var itemId = await PrimeiroItemAsync(cliente);
 
@@ -40,7 +42,7 @@ public class ContagemAposFinalizarTests
     [Fact]
     public async Task RegistrarEntrada_QuantidadeNegativa_RetornaBadRequest()
     {
-        using var fabrica = new WebApplicationFactory<Program>();
+        using var fabrica = new ApiDeTeste();
         var cliente = fabrica.CreateClient();
         var itemId = await PrimeiroItemAsync(cliente);
 

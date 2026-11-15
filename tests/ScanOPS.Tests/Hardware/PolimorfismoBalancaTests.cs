@@ -6,6 +6,8 @@ using ScanOPS.Hardware;
 using ScanOPS.Instrumentos;
 using ScanOPS.Servicos;
 
+using ScanOPS.Tests.Infra;
+
 namespace ScanOPS.Tests.Hardware;
 
 /// <summary>
@@ -114,7 +116,7 @@ public class PolimorfismoBalancaTests
 
     private static IBalanca BalancaRegistradaNaApi(string? tipo)
     {
-        using var fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(b =>
+        using var fabrica = new ApiDeTeste(b =>
         {
             if (tipo is not null) b.UseSetting("Balanca:Tipo", tipo);
         });

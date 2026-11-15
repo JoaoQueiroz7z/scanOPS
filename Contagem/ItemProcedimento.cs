@@ -12,6 +12,7 @@ public class ItemProcedimento
     public const decimal ToleranciaPesoPadrao = 2m;
 
     public Guid Id { get; private set; } = Guid.NewGuid();
+    public int Sequencia { get; private set; }
     public Instrumento Instrumento { get; private set; }
     public int QuantidadePrevista { get; private set; }
     public int QuantidadeInicial { get; private set; }
@@ -22,10 +23,17 @@ public class ItemProcedimento
     public decimal ToleranciaPeso { get; private set; } = ToleranciaPesoPadrao;
     public StatusItem Status { get; private set; } = StatusItem.Pendente;
 
-    internal ItemProcedimento(Instrumento instrumento, int quantidadePrevista)
+    internal ItemProcedimento(Instrumento instrumento, int quantidadePrevista, int sequencia)
     {
         Instrumento = instrumento;
         QuantidadePrevista = quantidadePrevista;
+        Sequencia = sequencia;
+    }
+
+    // Usado apenas pelo EF Core para recriar o objeto a partir do banco.
+    private ItemProcedimento()
+    {
+        Instrumento = null!;
     }
 
     internal void RegistrarEntrada(int qtd)
