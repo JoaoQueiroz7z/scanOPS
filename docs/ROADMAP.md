@@ -1,134 +1,116 @@
 # scanOPS — Roadmap
 
-> Ordem de construção do sistema. Marque `[x]` ao concluir cada tarefa.
-> Veja também: [`ARCHITECTURE.md`](ARCHITECTURE.md) e [`ADR.md`](ADR.md).
+> Ordem de construção do sistema e situação de cada item.
+> Veja também: [`ARCHITECTURE.md`](ARCHITECTURE.md), [`ADR.md`](ADR.md) e a auditoria
+> [`av2/auditoria-final.md`](av2/auditoria-final.md).
+>
+> Revisado em 15/11/2026. Legenda: `[x]` feito e verificável no código · `[ ]` não feito ·
+> **(mudou)** o plano original foi substituído por outra solução.
 
-## Status atual (segundo o README)
+## Situação atual
 
-- [x] Estrutura inicial do projeto
-- [x] Classes do modelo (Instrumento, Contagem, Cirurgia...)
-- [ ] Lógica de comparação de contagens e conferência de peso
-- [ ] API (rotas para o front)
-- [ ] Front-end em React
-- [ ] Integração com balança e câmera
-- [ ] Banco de dados
-- [ ] Relatórios
+- [x] Domínio com regras RN1–RN5 e estados do procedimento
+- [x] API com DTOs, tratamento central de erros e rotas de cadastro, planejamento e contagem
+- [x] Banco SQLite (EF Core) criado automaticamente
+- [x] Duas balanças simuladas escolhidas por configuração
+- [x] 85 testes automatizados (domínio, exceções, API e persistência)
+- [x] Documentação da AV2 em `docs/av2/`
+- [x] Telas do front-end criadas (React + Vite)
+- [ ] Tela Novo Procedimento ligada às rotas de planejar/iniciar
+- [ ] Câmera integrada à conferência
+- [ ] Relatório em PDF
+- [ ] Controle de acesso por usuário e perfil
+- [ ] Hardware real
 
-## Visão geral das fases
+## Fases
 
-| Fase | Entrega | Conceitos de POO | Depende de |
-|---|---|---|---|
-| 0 | Base e documentação | — | — |
-| 1 | Modelo de domínio | Encapsulamento, herança, composição | 0 |
-| 2 | Hardware (interfaces + simulados) | Interfaces, polimorfismo | 1 |
-| 3 | Serviços e regras de negócio | Responsabilidade única, injeção de dependência | 1, 2 |
-| 4 | Persistência | Generics, padrão Repository | 1, 3 |
-| 5 | API | Camadas, DTOs | 3, 4 |
-| 6 | Front-end | — | 5 |
-| 7 | Relatórios | Strategy, polimorfismo | 3, 4 |
-| 8 | Hardware real | Substituição de implementações | 2, 3 |
-| 9 | Entrega e apresentação | — | todas |
-
-**Caminho recomendado:** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9.
-Faça as fases 1 a 3 com hardware simulado e teste a lógica antes de ligar equipamento real.
+| Fase | Entrega | Situação |
+|---|---|---|
+| 0 | Base e documentação | Feita |
+| 1 | Modelo de domínio | Feita (com mudanças de plano) |
+| 2 | Hardware (interfaces + simulados) | Feita para a balança; câmera parcial |
+| 3 | Regras de negócio | Feita (no domínio, não em serviços) |
+| 4 | Persistência | Feita |
+| 5 | API | Feita, exceto autenticação nas rotas |
+| 6 | Front-end | Parcial |
+| 7 | Relatórios | Não feita |
+| 8 | Hardware real | Não feita |
+| 9 | Entrega e apresentação | Em andamento |
 
 ---
 
 ## Fase 0 — Base e documentação
 
-- [ ] Padronizar nomes de pastas (`Relatorios`, `Servicos`) e conferir o README
-- [ ] Corrigir o comando de clone do README (`SEU-USUARIO/SEU-REPO`)
-- [ ] Revisar credenciais de demonstração do README
-- [ ] Commitar `ARCHITECTURE.md`, `ADR.md` e `ROADMAP.md` na raiz
-- [ ] Decidir pendências: banco (ADR-007) e autenticação (ADR-008)
-
-**Pronto quando:** repositório limpo, documentos na raiz, projeto compila e roda.
+- [x] Padronizar nomes de pastas (`docs/` minúscula; `Relatorios`, `Servicos`)
+- [x] README na raiz com integrantes, instruções e comando de clone correto
+- [x] Credenciais de demonstração marcadas como "somente desenvolvimento"
+- [x] `ARCHITECTURE.md`, `ADR.md` e `ROADMAP.md` em `docs/`
+- [x] Decidir banco (ADR-007 aceito)
+- [ ] Decidir autenticação (ADR-008 continua proposto)
 
 ## Fase 1 — Modelo de domínio
 
-- [ ] Classe abstrata `Pessoa` e subclasses `Paciente` e `Usuario`
-- [ ] `Cirurgiao`, `Instrumentista`, `Administrador` herdando de `Usuario`
-- [ ] `Instrumento` (nome, peso de referência)
-- [ ] `Cirurgia` (paciente, cirurgião, status, contagens)
-- [ ] `Contagem` e `ItemContagem`
-- [ ] Enums: `StatusCirurgia`, `TipoContagem`, `StatusItem`, `PerfilUsuario`
-- [ ] Validações nos construtores/propriedades (encapsulamento)
+- [x] `Instrumento` (nome, código, tipo, peso de referência)
+- [x] `Procedimento` com estados `Planejado`, `EmAndamento`, `Finalizado`, `Cancelado` **(mudou: o plano chamava de `Cirurgia`)**
+- [x] `ItemProcedimento` dentro do `Procedimento` **(mudou: o plano tinha `Contagem` e `ItemContagem`; inicial e final ficaram como quantidades do mesmo item)**
+- [x] `Paciente` e `Usuario` (perfil pelo enum `TipoUsuario`) **(mudou: a hierarquia `Pessoa` → `Usuario` → `Cirurgiao`/`Instrumentista`/`Administrador` não foi criada, porque as subclasses não teriam comportamento diferente)**
+- [x] Encapsulamento: setters privados/internal e testes de auditoria
 
-**Pronto quando:** as classes compilam, respeitam o diagrama UML e têm testes simples de criação e validação.
+## Fase 2 — Hardware
 
-## Fase 2 — Hardware (interfaces e simulados)
+- [x] Interfaces `IBalanca` e `ICamera`
+- [x] `BalancaSimulada`, `BalancaComRuido` e `CameraSimulada`
+- [x] Balança escolhida por configuração e injetada (`Balanca:Tipo`)
+- [ ] Câmera registrada e usada pela API
 
-- [ ] Interfaces `IBalanca` e `ICamera`
-- [ ] `BalancaSimulada` e `CameraSimulada` (valores configuráveis)
-- [ ] Registro das implementações em `Program.cs`
+## Fase 3 — Regras de negócio
 
-**Pronto quando:** é possível obter peso e lista de instrumentos "reconhecidos" sem nenhum equipamento.
-
-## Fase 3 — Serviços e regras de negócio
-
-- [ ] `ContagemService`: executar contagem inicial e final
-- [ ] Comparação inicial × final → lista de faltantes (RN2)
-- [ ] `ConferenciaPesoService`: peso medido × referência com tolerância (RN3/RN4)
-- [ ] `CirurgiaService`: status e encerramento (RN5/RN6)
-- [ ] `InstrumentoService`: cadastro e consulta
-- [ ] Testes de unidade para RN1–RN6
-
-**Pronto quando:** o fluxo completo roda em teste: contagem inicial → contagem final → resultado com faltantes e divergências.
+- [x] RN1–RN5 nos métodos de `Procedimento` e `ItemProcedimento` **(mudou: o plano previa `CirurgiaService`, `ContagemService` e `ConferenciaPesoService`; ver ADR-011)**
+- [x] `ServicoDePesagem` (liga a balança ao procedimento)
+- [x] Testes de sucesso e violação para cada regra
 
 ## Fase 4 — Persistência
 
-- [ ] Definir o banco (fechar ADR-007)
-- [ ] Interface `IRepositorio<T>` e repositórios de Instrumento, Cirurgia, Contagem e Pessoas
-- [ ] Versão em memória para testes
-- [ ] Versão com banco real e migração/script de criação
-
-**Pronto quando:** os dados sobrevivem ao reiniciar a aplicação e os serviços não mudaram.
+- [x] SQLite + EF Core, banco criado automaticamente com dados de demonstração
+- [x] `IRepositorioDeProcedimentos` **(mudou: não há `IRepositorio<T>` genérico; ver ADR-007)**
+- [x] Testes de integração com banco temporário
+- [ ] Migrações (hoje `EnsureCreated`)
 
 ## Fase 5 — API
 
-- [ ] DTOs de entrada e saída
-- [ ] Rotas de autenticação, instrumentos, pacientes, cirurgias e contagens
-- [ ] Tratamento de erros e códigos HTTP
-- [ ] CORS para `http://localhost:5173`
-- [ ] Autenticação e perfis (fechar ADR-008)
+- [x] DTOs de entrada e saída
+- [x] Rotas de login, instrumentos, pacientes, procedimentos (planejar, iniciar, cancelar) e contagem
+- [x] Tratamento central de erros e códigos HTTP (ADR-010)
+- [x] CORS para `http://localhost:5173`
+- [ ] Autenticação e perfis nas rotas (ADR-008)
+- [ ] Swagger/OpenAPI
 
-**Pronto quando:** todas as rotas respondem corretamente e podem ser testadas por ferramenta HTTP (ex.: Swagger).
+## Fase 6 — Front-end
 
-## Fase 6 — Front-end (React + Vite)
-
-- [ ] Camada `api/` com as chamadas HTTP
-- [ ] Tela **Login** (seguindo o mockup)
-- [ ] Telas **Visão Geral** e **Paciente**
-- [ ] Telas **Novo Procedimento** e **Instrumentos**
-- [ ] Telas **Contagem Inicial**, **Procedimento em Andamento** e **Contagem Final**
-- [ ] Tela **Relatório Final**
-- [ ] Controle de rotas por perfil de usuário
-
-**Pronto quando:** um operador completa o fluxo inteiro pela interface, com hardware simulado.
+- [x] Telas: Login, Visão Geral, Paciente, Novo Procedimento, Instrumentos, Contagem Inicial, Procedimento em Andamento, Contagem Final, Relatório Final
+- [ ] Camada `api/` única para as chamadas HTTP
+- [ ] Tela Novo Procedimento usando `POST /api/procedimentos` e `/iniciar`
+- [ ] Guardar o usuário logado e controlar rotas por perfil
+- [ ] Verificar o front com Node.js instalado (não verificado na última auditoria)
 
 ## Fase 7 — Relatórios
 
-- [ ] `RelatorioService` monta o resumo da cirurgia (faltantes, divergências, responsáveis)
-- [ ] Interface `IGeradorRelatorio` com formato em tela e formato exportável (ex.: PDF)
-- [ ] Rota e tela do Relatório Final integradas
-
-**Pronto quando:** o relatório final é gerado e exportado para uma cirurgia de teste.
+- [ ] Rota e tela do Relatório Final com dados reais
+- [ ] `Relatorio.GerarPDF()` (hoje lança `NotImplementedException`)
+- [ ] Gravar o relatório e as assinaturas no banco
 
 ## Fase 8 — Hardware real
 
-- [ ] Implementação real de `IBalanca`
-- [ ] Implementação real de `ICamera` (reconhecimento por imagem)
-- [ ] Calibrar tolerância de peso com instrumentos reais (RN4)
-- [ ] Alternar entre simulado e real por configuração
-
-**Pronto quando:** a contagem funciona com equipamento real sem alterar serviços nem front.
+- [ ] Implementação real de `IBalanca` e `ICamera`
+- [ ] Calibrar a tolerância de peso (hoje ±2 g) com instrumentos reais
 
 ## Fase 9 — Entrega e apresentação
 
-- [ ] README atualizado (como executar, status, credenciais de demonstração)
-- [ ] Diagrama de classes final conferido com o código
-- [ ] Demonstração do fluxo completo ensaiada
-- [ ] Mapeamento dos pilares de POO para exemplos do código (para a banca)
+- [x] README atualizado
+- [x] Diagrama de classes conferido com o código (`docs/av2/modelo-classes.md`)
+- [x] Mapeamento dos critérios para evidências (`docs/av2/evidencias.json`)
+- [ ] Critério G02: alteração feita com o DsCode
+- [ ] Demonstração do fluxo completo pela interface
 
 ---
 
@@ -136,8 +118,8 @@ Faça as fases 1 a 3 com hardware simulado e teste a lógica antes de ligar equi
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| Hardware indisponível ou instável | Alto | Simuladores desde a fase 2 (ADR-006) |
-| Reconhecimento por imagem complexo | Alto | Começar com identificação simplificada; evoluir depois |
-| Banco e autenticação indefinidos | Médio | Fechar ADR-007/008 na fase 0 |
-| Código gerado por IA fora do padrão | Médio | Usar o bloco de regras do ARCHITECTURE (seção 11) em todo pedido |
-| Documentação desatualizada | Médio | Atualizar docs junto de cada entrega |
+| Hardware indisponível ou instável | Alto | Simuladores e `FalhaDeHardwareException` → 503 (ADR-006, ADR-010) |
+| Reconhecimento por imagem complexo | Alto | Câmera fora da conferência por enquanto; peso já confere |
+| Banco desatualizado após mudança de modelo | Médio | Apagar `scanops.db`; adotar migrações |
+| Rotas sem autenticação | Médio | Fechar ADR-008 |
+| Documentação desatualizada | Médio | Atualizar docs junto de cada entrega (já aconteceu uma vez; ver ADR-009) |

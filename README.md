@@ -113,17 +113,20 @@ Também é possível trocar sem editar o arquivo: `$env:Balanca__Tipo = "ComRuid
 - [x] Estrutura inicial do projeto
 - [x] Classes do modelo (Procedimento, ItemProcedimento, Instrumento, Paciente, Usuario, Relatorio)
 - [x] Conferência de contagens e de peso (no domínio)
-- [x] API com rotas de login, instrumentos, pacientes e procedimento em andamento
-- [x] Front-end React com as telas principais
-- [x] Hardware simulado: duas balanças (`BalancaSimulada` e `BalancaComRuido`, escolhida por configuração) e câmera
+- [x] API com rotas de login, instrumentos, pacientes, planejamento/início/cancelamento de procedimentos e contagem
+- [x] Front-end React com as telas principais (a tela Novo Procedimento ainda não usa as rotas de planejamento)
+- [x] Balança simulada: duas implementações (`BalancaSimulada` e `BalancaComRuido`, escolhida por configuração)
 - [x] Tratamento central de erros na API (regra de negócio → 400, equipamento indisponível → 503)
 - [x] Testes automatizados (xUnit) em `tests/ScanOPS.Tests`: domínio, exceções e integração com a API
 - [x] Banco de dados SQLite local (EF Core), criado automaticamente
+- [ ] Câmera na conferência (existe só a interface e uma simulação, não usadas pela API)
+- [ ] Controle de acesso por usuário/perfil nas rotas
 - [ ] Integração com balança e câmera reais
 - [ ] Geração de relatório em PDF
 
 ## Documentação
 
+- [Documentação da AV2](docs/av2/README.md) — especificação, modelo de classes, revisão de código, depuração, rastreabilidade, auditoria e `evidencias.json`
 - [Arquitetura](docs/ARCHITECTURE.md)
 - [Decisões de arquitetura (ADR)](docs/ADR.md)
 - [Roadmap](docs/ROADMAP.md)
