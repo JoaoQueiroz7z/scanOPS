@@ -1,0 +1,18 @@
+# Verificação da alteração revisada (docs/av2/revisao-codigo.md): testes antes e depois do commit eb9a8ed (2026-11-14 23:55:29)
+
+## Commit 7782869 — test: reproduz contagem aceita após finalizar e quantidade negativa (FALHA)
+  Com falha ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_QuantidadeNegativa_RetornaBadRequest
+Expected: BadRequest
+Actual:   OK
+  Com falha ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_DepoisDeFinalizado_RetornaBadRequestENaoAlteraContagem
+Expected: BadRequest
+Actual:   OK
+Com falha! – Com falha:     2, Aprovado:     2, Ignorado:     0, Total:     4- ScanOPS.Tests.dll (net10.0)
+
+## Commit eb9a8ed — fix: impede contagem em procedimento finalizado e quantidade inválida
+Aprovado!  – Com falha:     0, Aprovado:     4, Ignorado:     0, Total:     4- ScanOPS.Tests.dll (net10.0)
+
+## Arquivos alterados pelo commit eb9a8ed (git show --stat)
+ Cirurgias/Procedimento.cs | 35 +++++++++++++++++++++++++++++++++++
+ Program.cs                | 38 ++++++++++++++++++++++++++------------
+ 2 files changed, 61 insertions(+), 12 deletions(-)

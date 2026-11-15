@@ -1,0 +1,224 @@
+{
+  "projeto": "scanOPS",
+  "disciplina": "Design e Programação Orientados a Objetos — AV2",
+  "como_verificar": {
+    "build": "dotnet build",
+    "testes": "dotnet test",
+    "executar": "dotnet run --urls http://localhost:5000",
+    "banco": "SQLite criado automaticamente em scanops.db na primeira execução (ver README.md, seção Banco de dados)"
+  },
+  "observacao": "Status é a autoavaliação do grupo; a justificativa e as pendências estão em docs/av2/auditoria-final.md.",
+  "criterios": {
+    "A01": {
+      "status": "atendido",
+      "resumo": "Seis classes de domínio: Procedimento, ItemProcedimento, Instrumento, Paciente, Usuario, Relatorio.",
+      "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs", "Instrumentos/Instrumento.cs", "Pessoas/Paciente.cs", "Pessoas/Usuario.cs", "Relatorios/Relatorio.cs", "docs/av2/modelo-classes.md"]
+    },
+    "A02": {
+      "status": "atendido",
+      "resumo": "Comportamentos próprios: Procedimento.Finalizar/Iniciar/Cancelar, ItemProcedimento.ConferePeso/PossuiDivergencia, Usuario.Autenticar, Paciente.GetIdade.",
+      "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs", "Pessoas/Usuario.cs", "Pessoas/Paciente.cs"],
+      "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs", "tests/ScanOPS.Tests/Dominio/PacienteTests.cs"]
+    },
+    "A03": {
+      "status": "atendido",
+      "resumo": "Regras RN1 a RN5 implementadas no domínio e chamadas pelas rotas da API.",
+      "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs", "Program.cs", "docs/av2/especificacao.md", "docs/av2/rastreabilidade.md"],
+      "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
+    },
+    "A04": {
+      "status": "atendido",
+      "resumo": "Pesagem e finalização: ServicoDePesagem usa IBalanca e Procedimento; Procedimento consulta ItemProcedimento, que usa Instrumento.PesoReferencia.",
+      "evidencias": ["Servicos/ServicoDePesagem.cs", "Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs"],
+      "testes": ["tests/ScanOPS.Tests/Hardware/PolimorfismoBalancaTests.cs#MesmoServico_ComQualquerBalanca_GravaPesoQueRespeitaRN4", "tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs#ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco"]
+    },
+    "A05": {
+      "status": "atendido",
+      "resumo": "Procedimento com estados Planejado, EmAndamento, Finalizado e Cancelado; transições por Iniciar, Finalizar e Cancelar; Id preservado.",
+      "evidencias": ["Cirurgias/StatusProcedimento.cs", "Cirurgias/Procedimento.cs", "docs/av2/especificacao.md#3-estados-do-procedimento"],
+      "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs#Identidade_TransicoesPreservamOMesmoId"]
+    },
+    "A06": {
+      "status": "atendido",
+      "resumo": "Transições proibidas lançam RegraDeNegocioException sem alterar objeto nem banco; Finalizar valida antes de alterar.",
+      "evidencias": ["Cirurgias/Procedimento.cs", "docs/av2/evidencias/invariante-finalizar.txt"],
+      "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado", "tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs#FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco", "tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs#RN2_Violacao_FinalizarPlanejado_LancaEMantemPlanejado"]
+    },
+    "A07": {
+      "status": "atendido",
+      "resumo": "Status e Observacoes com private set; Itens como IReadOnlyList; construtor e métodos de alteração de ItemProcedimento internal.",
+      "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs"],
+      "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#ItemProcedimento_MetodosDeAlteracaoEConstrutorNaoSaoPublicos", "tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico", "tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#Procedimento_StatusEItensNaoPodemSerAlteradosDeFora"]
+    },
+    "A08": {
+      "status": "atendido",
+      "resumo": "Contrato IBalanca com BalancaSimulada (exata) e BalancaComRuido (ruído e deriva), escolhida por configuração e usada pela rota /pesar via ServicoDePesagem.",
+      "evidencias": ["Hardware/IBalanca.cs", "Hardware/BalancaSimulada.cs", "Hardware/BalancaComRuido.cs", "Hardware/ConfiguracaoDeHardware.cs", "appsettings.json", "docs/av2/evidencias/polimorfismo-balanca.txt"],
+      "testes": ["tests/ScanOPS.Tests/Hardware/PolimorfismoBalancaTests.cs"]
+    },
+    "B01": {
+      "status": "atendido",
+      "resumo": "Diagrama de classes em Mermaid com as classes de domínio.",
+      "evidencias": ["docs/av2/modelo-classes.md"]
+    },
+    "B02": {
+      "status": "atendido",
+      "resumo": "Tabela de correspondência classe do modelo -> arquivo C#.",
+      "evidencias": ["docs/av2/modelo-classes.md#1-correspondência-modelo--código-b01-b02-b03"]
+    },
+    "B03": {
+      "status": "atendido",
+      "resumo": "Atributos e métodos do diagrama são os membros reais das classes, com visibilidade.",
+      "evidencias": ["docs/av2/modelo-classes.md"]
+    },
+    "B04": {
+      "status": "atendido",
+      "resumo": "Associações com multiplicidade (Procedimento 1 -> 0..* ItemProcedimento, ItemProcedimento 0..* -> 1 Instrumento etc.) e cenários que as comprovam.",
+      "evidencias": ["docs/av2/modelo-classes.md#2-associações-e-multiplicidade-b04", "Persistencia/ScanOpsDbContext.cs"]
+    },
+    "B05": {
+      "status": "atendido",
+      "resumo": "Composição Procedimento *-- ItemProcedimento: construtor internal, lista privada e exclusão em cascata.",
+      "evidencias": ["docs/av2/modelo-classes.md#3-composição-procedimento--itemprocedimento-b05", "Persistencia/ScanOpsDbContext.cs", "Cirurgias/Procedimento.cs"]
+    },
+    "B06": {
+      "status": "atendido",
+      "resumo": "Contrato IBalanca e suas duas implementações representados no modelo.",
+      "evidencias": ["docs/av2/modelo-classes.md#4-contrato-polimórfico-ibalanca-b06"]
+    },
+    "B07": {
+      "status": "atendido",
+      "resumo": "Invariante do agregado e objeto responsável (Procedimento).",
+      "evidencias": ["docs/av2/modelo-classes.md#5-invariante-e-objeto-responsável-b07"],
+      "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs"]
+    },
+    "B08": {
+      "status": "atendido",
+      "resumo": "Duas decisões comparando alternativas: IBalanca x classe concreta; ItemProcedimento no agregado x entidade independente.",
+      "evidencias": ["docs/av2/analise-modelo.md"]
+    },
+    "C01": {
+      "status": "atendido",
+      "resumo": "Alteração funcional eb9a8ed comparada com 7782869 (git diff 7782869 eb9a8ed).",
+      "evidencias": ["docs/av2/revisao-codigo.md", "commit:eb9a8ed", "commit:7782869"]
+    },
+    "C02": {
+      "status": "atendido",
+      "resumo": "A alteração implementa a RN5; inspeção orientada pelo requisito.",
+      "evidencias": ["docs/av2/revisao-codigo.md#2-requisito-que-a-alteração-implementa-c02"]
+    },
+    "C03": {
+      "status": "atendido",
+      "resumo": "Inventário dos 2 arquivos modificados, finalidade e verificação de mudanças fora do escopo.",
+      "evidencias": ["docs/av2/revisao-codigo.md#3-inventário-dos-arquivos-modificados-c03"]
+    },
+    "C04": {
+      "status": "atendido",
+      "resumo": "Impacto local, transitivo e em contratos, com verificação executada nas duas versões.",
+      "evidencias": ["docs/av2/revisao-codigo.md#4-impacto-da-alteração-c04", "docs/av2/evidencias/revisao-verificacao.txt"]
+    },
+    "C05": {
+      "status": "atendido",
+      "resumo": "Avaliação por responsabilidade/coesão, encapsulamento, acoplamento e duplicação.",
+      "evidencias": ["docs/av2/revisao-codigo.md#5-avaliação-quanto-a-propriedades-de-poo-c05"]
+    },
+    "C06": {
+      "status": "atendido",
+      "resumo": "Parecer separando fatos de julgamento; decisão: aceitar com ressalvas, tratadas em 09e70af e 4495c04.",
+      "evidencias": ["docs/av2/revisao-codigo.md#6-parecer-técnico-c06"]
+    },
+    "D01": {
+      "status": "atendido",
+      "resumo": "Três situações: F1 e F2 (regras, HTTP 400) e F3 (balança indisponível, excepcional, HTTP 503).",
+      "evidencias": ["docs/av2/tratamento-de-falhas.md#1-três-situações-de-falha-d01", "Excecoes/RegraDeNegocioException.cs", "Hardware/FalhaDeHardwareException.cs"]
+    },
+    "D02": {
+      "status": "atendido",
+      "resumo": "Exceção lançada no domínio/serviço, propagada pela rota e tratada no TratadorDeExcecoes (UseExceptionHandler).",
+      "evidencias": ["Api/TratadorDeExcecoes.cs", "Program.cs", "docs/av2/tratamento-de-falhas.md#2-caminho-da-exceção-até-o-tratamento-d02", "docs/av2/evidencias/excecoes-api.txt"]
+    },
+    "D03": {
+      "status": "atendido",
+      "resumo": "Falha de hardware vira 503 com mensagem genérica; detalhe e stack trace só no log.",
+      "evidencias": ["Api/TratadorDeExcecoes.cs", "Servicos/ServicoDePesagem.cs"],
+      "testes": ["tests/ScanOPS.Tests/Excecoes/SituacoesDeFalhaTests.cs#F3_Api_ErroNaBalanca_Retorna503ComMensagemGenericaSemDetalhesInternos"]
+    },
+    "D04": {
+      "status": "atendido",
+      "resumo": "Testes de domínio e de API para as três situações de falha.",
+      "testes": ["tests/ScanOPS.Tests/Excecoes/SituacoesDeFalhaTests.cs"]
+    },
+    "E01": {
+      "status": "atendido",
+      "resumo": "Defeito real: procedimento finalizado aceitava contagens, inclusive negativas.",
+      "evidencias": ["docs/av2/registro-depuracao.md#1-defeito-e01", "docs/av2/evidencias/reproducao-antes-da-correcao.txt", "docs/av2/evidencias/teste-falhando-antes-da-correcao.txt", "commit:7782869"]
+    },
+    "E02": {
+      "status": "atendido",
+      "resumo": "Condições de reprodução, comportamento esperado e observado.",
+      "evidencias": ["docs/av2/registro-depuracao.md#2-reprodução-condições-esperado-e-observado-e02"]
+    },
+    "E03": {
+      "status": "atendido",
+      "resumo": "Três hipóteses, investigadas com evidência (duas confirmadas, uma descartada).",
+      "evidencias": ["docs/av2/registro-depuracao.md#3-hipóteses-e-investigação-e03"]
+    },
+    "E04": {
+      "status": "atendido",
+      "resumo": "Análise de logs com instrumentação temporária na versão com defeito.",
+      "evidencias": ["docs/av2/evidencias/depuracao-log.txt", "docs/av2/registro-depuracao.md#4-técnica-de-depuração-aplicada-e04"]
+    },
+    "E05": {
+      "status": "atendido",
+      "resumo": "Causa raiz (responsabilidade fora do Procedimento), correção eb9a8ed e eliminação do comportamento.",
+      "evidencias": ["docs/av2/registro-depuracao.md#5-causa-raiz-e-correção-e05", "commit:eb9a8ed"]
+    },
+    "E06": {
+      "status": "atendido",
+      "resumo": "Verificação antes x depois e comparação entre log e breakpoint, com recomendação.",
+      "evidencias": ["docs/av2/registro-depuracao.md#6-verificação-antes--depois-e-não-regressão-e06", "docs/av2/evidencias/reproducao-depois-da-correcao.txt", "docs/av2/evidencias/teste-passando-depois-da-correcao.txt", "docs/av2/evidencias/revisao-verificacao.txt"]
+    },
+    "F01": {
+      "status": "atendido",
+      "resumo": "Sucesso e violação para RN1 a RN5 (mais de 10 cenários).",
+      "evidencias": ["docs/av2/rastreabilidade.md#1-regras-de-negócio"],
+      "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
+    },
+    "F02": {
+      "status": "atendido",
+      "resumo": "Testes que tentam violar a invariante e confirmam estado válido.",
+      "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#ProcedimentoFinalizado_RecusaTodaAlteracaoEPermaneceIntacto", "tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado"]
+    },
+    "F03": {
+      "status": "atendido",
+      "resumo": "Testes de integração: chamada HTTP, regra aplicada e leitura do SQLite com contexto novo.",
+      "evidencias": ["tests/ScanOPS.Tests/Infra/ApiDeTeste.cs", "docs/av2/evidencias/persistencia-sqlite.txt"],
+      "testes": ["tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs", "tests/ScanOPS.Tests/Api/CicloDeVidaProcedimentoApiTests.cs"]
+    },
+    "F04": {
+      "status": "atendido",
+      "resumo": "dotnet build e dotnet test a partir de clone limpo, com instruções no README.",
+      "evidencias": ["README.md", "scanOPS.sln"]
+    },
+    "F05": {
+      "status": "atendido",
+      "resumo": "Matriz fluxo/regra -> implementação -> testes.",
+      "evidencias": ["docs/av2/rastreabilidade.md"]
+    },
+    "F06": {
+      "status": "atendido",
+      "resumo": "Auditoria com critérios, evidências e pendências.",
+      "evidencias": ["docs/av2/auditoria-final.md"]
+    },
+    "G01": {
+      "status": "atendido",
+      "resumo": "Especificação dos 3 fluxos, 5 regras, estados e critérios de aceitação Dado/Quando/Então.",
+      "evidencias": ["docs/av2/especificacao.md"]
+    },
+    "G02": {
+      "status": "pendente",
+      "resumo": "Especificação para o DsCode associada a uma alteração funcional: ainda não realizada.",
+      "evidencias": []
+    }
+  }
+}
