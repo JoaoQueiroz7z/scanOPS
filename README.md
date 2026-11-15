@@ -24,29 +24,35 @@ Sistema que ajuda a evitar que instrumentos cirúrgicos sejam esquecidos dentro 
 
 ```
 React (Vite) ──HTTP/JSON──> API em C# ──> regras de negócio (domínio)
+                                      ├─> banco SQLite (EF Core)
                                       └─> balança e câmera (simuladas)
 ```
 
 - **Back-end:** C# / .NET 10 (API web) com as regras de negócio.
+- **Banco de dados:** SQLite local via Entity Framework Core.
 - **Front-end:** React + Vite, interface para o operador.
-- **Hardware:** balança e câmera, acessadas somente pelo back-end (por enquanto, apenas simuladas).
+- **Hardware:** balança e câmera, acessadas somente pelo back-end através de interfaces (por enquanto, apenas simuladas).
 
 ## Estrutura do projeto
 
 ```
 scanOPS/
+├── Api/            # tratamento central de exceções da API
 ├── Cirurgias/      # Procedimento e seu status
 ├── Contagem/       # itens contados e status do item
+├── Excecoes/       # exceção de regra de negócio
 ├── Hardware/       # interfaces e simulações de balança e câmera
 ├── Instrumentos/   # cadastro de instrumentos
+├── Persistencia/   # banco SQLite (EF Core) e repositório
 ├── Pessoas/        # paciente e usuários
 ├── Relatorios/     # relatório do procedimento
-├── Servicos/       # demonstração do fluxo
-├── docs/           # arquitetura, decisões (ADR) e roadmap
+├── Servicos/       # pesagem e demonstração do fluxo
+├── docs/           # arquitetura, decisões (ADR), roadmap e evidências (docs/av2)
 ├── frontend/       # aplicação React (Vite)
 ├── tests/
 │   └── ScanOPS.Tests/  # testes automatizados (xUnit)
 ├── Program.cs      # API (rotas)
+├── appsettings.json # configuração (banco e tipo de balança)
 ├── scanOPS.csproj  # projeto da API
 └── scanOPS.sln     # solução: agrupa API + testes
 ```
@@ -85,16 +91,32 @@ Acesse `http://localhost:5173`.
 
 **Conta de demonstração (somente desenvolvimento):** `medico@scanops.com` / `123456`
 
+### Banco de dados
+
+Não é preciso instalar nada: o banco é um arquivo **SQLite** criado automaticamente.
+
+- Na primeira vez que a API sobe (`dotnet run`), ela cria `scanops.db` na raiz do projeto,
+  com as tabelas e os dados de demonstração (usuário acima, dois instrumentos e um procedimento em andamento).
+- Para recomeçar do zero, pare a API e apague o arquivo `scanops.db` (e `scanops.db-shm`/`scanops.db-wal`, se existirem).
+- O caminho do banco fica em `appsettings.json` → `ConnectionStrings:ScanOps`.
+- Os testes não usam esse arquivo: cada teste de API cria um banco temporário próprio e o apaga ao final.
+
+### Configuração da balança
+
+Em `appsettings.json` → `Balanca:Tipo`: `Simulada` (peso exato) ou `ComRuido` (simula a imprecisão de uma balança real).
+Também é possível trocar sem editar o arquivo: `$env:Balanca__Tipo = "ComRuido"` (PowerShell) antes do `dotnet run`.
+
 ## Status atual
 
 - [x] Estrutura inicial do projeto
 - [x] Classes do modelo (Procedimento, ItemProcedimento, Instrumento, Paciente, Usuario, Relatorio)
 - [x] Conferência de contagens e de peso (no domínio)
-- [x] API com rotas de login, instrumentos, pacientes e procedimento em andamento (dados em memória)
+- [x] API com rotas de login, instrumentos, pacientes e procedimento em andamento
 - [x] Front-end React com as telas principais
-- [x] Hardware simulado (balança e câmera)
-- [x] Projeto de testes automatizados (xUnit) em `tests/ScanOPS.Tests`
-- [ ] Banco de dados (os dados ainda ficam apenas em memória)
+- [x] Hardware simulado: duas balanças (`BalancaSimulada` e `BalancaComRuido`, escolhida por configuração) e câmera
+- [x] Tratamento central de erros na API (regra de negócio → 400, equipamento indisponível → 503)
+- [x] Testes automatizados (xUnit) em `tests/ScanOPS.Tests`: domínio, exceções e integração com a API
+- [x] Banco de dados SQLite local (EF Core), criado automaticamente
 - [ ] Integração com balança e câmera reais
 - [ ] Geração de relatório em PDF
 

@@ -96,7 +96,7 @@ public class Procedimento
         if (quantidadePrevista <= 0)
             throw new RegraDeNegocioException("A quantidade prevista deve ser maior que zero.");
 
-        var item = new ItemProcedimento(instrumento, quantidadePrevista);
+        var item = new ItemProcedimento(instrumento, quantidadePrevista, sequencia: _itens.Count + 1);
         _itens.Add(item);
         return item;
     }
