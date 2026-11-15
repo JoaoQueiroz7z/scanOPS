@@ -1,0 +1,13 @@
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoTests.Iniciar_ProcedimentoPlanejado_PassaParaEmAndamento
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarEntrada_QuantidadeMenorOuIgualAZero_LancaExcecaoENaoAlteraContagem(quantidade: 0)
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarEntrada_QuantidadeMenorOuIgualAZero_LancaExcecaoENaoAlteraContagem(quantidade: -5)
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoTests.NovoProcedimento_ComecaPlanejado
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarEntrada_ItemInexistente_LancaKeyNotFound
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarSaida_QuantidadeZero_EhAceita
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarSaida_ProcedimentoPlanejado_LancaExcecao
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarSaida_QuantidadeNegativa_LancaExcecao
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarEntrada_EmAndamentoComQuantidadePositiva_SomaNaContagemInicial
+  Aprovado ScanOPS.Tests.Dominio.ProcedimentoContagemTests.RegistrarEntrada_ProcedimentoFinalizado_LancaExcecaoENaoAlteraContagem
+  Aprovado ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_QuantidadeNegativa_RetornaBadRequest
+  Aprovado ScanOPS.Tests.Api.ContagemAposFinalizarTests.RegistrarEntrada_DepoisDeFinalizado_RetornaBadRequestENaoAlteraContagem
+Aprovado!  – Com falha:     0, Aprovado:    12, Ignorado:     0, Total:    12 - ScanOPS.Tests.dll (net10.0)

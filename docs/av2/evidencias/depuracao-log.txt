@@ -1,0 +1,34 @@
+# Evidência de depuração por análise de logs (técnica: instrumentação temporária com log)
+#
+# Versão investigada: commit 7782869 (antes da correção eb9a8ed).
+# A instrumentação foi aplicada numa cópia temporária, fora do repositório,
+# e NÃO foi commitada. Trecho adicionado na rota POST /api/procedimento-atual/itens/{itemId}/entrada:
+#
+#   Console.WriteLine($"[DEPURACAO] POST /entrada recebido: quantidade={dados.Quantidade}, procedimento.Status={procedimentoAtivo.Status}, item.QuantidadeInicial(antes)={item.QuantidadeInicial}");
+#   item.RegistrarEntrada(dados.Quantidade);
+#   Console.WriteLine($"[DEPURACAO] RegistrarEntrada executado SEM checar status: item.QuantidadeInicial(depois)={item.QuantidadeInicial}");
+#
+# Hipótese testada: "a rota altera o ItemProcedimento diretamente, sem consultar o status do Procedimento".
+# Roteiro executado: o mesmo de reproducao-antes-da-correcao.txt (finalizar; entrada de 3; entrada de -5).
+#
+## Respostas HTTP observadas
+## 2) Finalizar o procedimento (sem divergência)
+{"status":"Finalizado"}  -> HTTP 200
+## 3) Registrar entrada de 3 unidades DEPOIS de finalizado (esperado: recusar com HTTP 400)
+  -> HTTP 200
+## 4) Registrar entrada de -5 unidades (esperado: recusar com HTTP 400)
+  -> HTTP 200
+
+## Log do servidor (linhas [DEPURACAO])
+[DEPURACAO] POST /entrada recebido: quantidade=3, procedimento.Status=Finalizado, item.QuantidadeInicial(antes)=0
+[DEPURACAO] RegistrarEntrada executado SEM checar status: item.QuantidadeInicial(depois)=3
+[DEPURACAO] POST /entrada recebido: quantidade=-5, procedimento.Status=Finalizado, item.QuantidadeInicial(antes)=3
+[DEPURACAO] RegistrarEntrada executado SEM checar status: item.QuantidadeInicial(depois)=-2
+
+## Conclusão
+- Na primeira entrada, procedimento.Status já era Finalizado e mesmo assim a quantidade foi somada (0 -> 3).
+- A segunda entrada (-5) também foi somada sem validação (3 -> -2).
+- Hipótese CONFIRMADA: o status nunca é consultado nesse caminho, porque a rota chama
+  ItemProcedimento.RegistrarEntrada direto, e o item não conhece o status do procedimento.
+- Correção aplicada no commit eb9a8ed: a contagem passa por Procedimento.RegistrarEntrada/RegistrarSaida,
+  que verificam o status e a quantidade antes de alterar o item.
