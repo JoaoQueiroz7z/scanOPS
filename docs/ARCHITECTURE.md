@@ -1,260 +1,198 @@
 # scanOPS — Arquitetura
 
-> Documento de referência para desenvolvimento (inclusive com IA). Leia antes de gerar código.
-> Complementos: [`ROADMAP.md`](ROADMAP.md) (ordem de entrega) e [`ADR.md`](ADR.md) (decisões e motivos).
-
-**Legenda:** ✅ definido no repositório/README · 🟡 proposto (ainda precisa ser confirmado pela equipe)
+> Descreve o sistema **como ele está implementado**. Detalhes de regras, modelo e testes estão em
+> [`av2/`](av2/README.md). Decisões e motivos: [`ADR.md`](ADR.md). Andamento: [`ROADMAP.md`](ROADMAP.md).
+>
+> Revisado em 15/11/2026. Versões anteriores deste documento descreviam um planejamento
+> (classes `Cirurgia`/`ItemContagem`, sete regras "propostas", serviços e rotas que não foram
+> criados). Esse conteúdo foi substituído pelo que existe no código.
 
 ---
 
 ## 1. Visão geral
 
-**scanOPS** é um sistema de controle de instrumentos cirúrgicos que evita que peças sejam esquecidas dentro do paciente.
-A conferência usa **duas métricas ao mesmo tempo**:
+**scanOPS** controla instrumentos cirúrgicos para evitar que peças sejam esquecidas no paciente.
+Cada procedimento registra quantas unidades de cada instrumento **entraram** em campo (contagem
+inicial) e quantas **voltaram** (contagem final), confere o **peso** medido com o peso de
+referência e só pode ser encerrado sem divergência ou com justificativa.
 
-1. **Peso** — medido por uma balança.
-2. **Imagem** — reconhecimento de cada peça por câmera.
+Projeto acadêmico (UNIFESO), disciplina Design e Programação Orientados a Objetos.
 
-Projeto acadêmico (Ciência da Computação, UNIFESO), em grupo (marca Device Tech). Disciplina: POO.
+**Dupla métrica (peso + imagem):** o peso é conferido no back-end (balança atrás de `IBalanca`).
+A identificação por câmera existe só como interface e simulação (`ICamera`, `CameraSimulada`);
+hoje o cliente informa `identificadoPorCamera` na contagem final e nenhuma rota usa a câmera.
 
-### Fluxo do negócio ✅
-
-1. Antes da cirurgia: **contagem inicial** (balança mede o peso, câmera identifica cada peça).
-2. Ao final: **contagem final**.
-3. O sistema **compara** as duas contagens e aponta instrumentos faltantes.
-4. Se o peso medido não bate com o peso de referência do instrumento, o item é **sinalizado**.
-
----
-
-## 2. Stack ✅
+## 2. Stack
 
 | Camada | Tecnologia |
 |---|---|
-| Back-end | C# / .NET 10 (API web) |
-| Front-end | React + Vite (indicado pelo professor) |
-| Comunicação | HTTP/JSON |
-| Hardware | Balança e câmera, acessadas **somente** pelo back-end |
-| Banco de dados | 🟡 a definir (ver ADR-007) |
+| Back-end | C# / .NET 10, ASP.NET Core minimal API (`Program.cs`) |
+| Banco de dados | SQLite local via Entity Framework Core 10 (`scanops.db`, criado automaticamente) |
+| Testes | xUnit + `Microsoft.AspNetCore.Mvc.Testing` (API em memória com banco temporário) |
+| Front-end | React + Vite (`frontend/`) |
+| Comunicação | HTTP/JSON com DTOs |
+| Hardware | Balança e câmera simuladas, acessadas só pelo back-end |
 
----
-
-## 3. Diagrama de componentes
+## 3. Componentes
 
 ```mermaid
 flowchart LR
-    UI["Front-end<br/>React + Vite"] -- "HTTP/JSON" --> API["API C# (.NET 10)<br/>Program.cs / rotas"]
-    API --> SRV["Servicos<br/>regras de negócio"]
-    SRV --> DOM["Modelo de domínio<br/>Cirurgias, Contagem,<br/>Instrumentos, Pessoas"]
-    SRV --> HW["Hardware<br/>IBalanca / ICamera"]
-    SRV --> REPO["Persistência<br/>repositórios"]
-    REPO --> DB[("Banco de dados")]
-    SRV --> REL["Relatorios"]
+    UI["Front-end<br/>React + Vite"] -- "HTTP/JSON (DTOs)" --> API["API<br/>Program.cs + Api/Dtos"]
+    API --> TRAT["Api/TratadorDeExcecoes<br/>(erros → HTTP)"]
+    API --> REPO["Persistencia/<br/>IRepositorioDeProcedimentos"]
+    API --> SRV["Servicos/<br/>ServicoDePesagem"]
+    API --> DOM["Domínio<br/>Procedimento, ItemProcedimento,<br/>Instrumento, Paciente, Usuario"]
+    SRV --> HW["Hardware/<br/>IBalanca"]
+    SRV --> DOM
+    REPO --> DOM
+    REPO --> DB[("SQLite<br/>scanops.db")]
 ```
 
-**Regra de dependência:** as setas só apontam para a direita/baixo. O domínio não conhece serviços, API, banco nem hardware concreto.
+- **Regras de negócio ficam no domínio** (métodos de `Procedimento` e `ItemProcedimento`), não nas
+  rotas nem em serviços. Ver ADR-011.
+- O domínio não conhece EF Core, HTTP nem hardware concreto. O mapeamento para o banco fica em
+  `Persistencia/ScanOpsDbContext.cs`.
+- Cada rota segue o padrão **carregar → chamar método de domínio → gravar**. Se o domínio lança
+  exceção, nada é gravado e o `TratadorDeExcecoes` responde.
 
----
-
-## 4. Estrutura de pastas ✅
+## 4. Estrutura de pastas
 
 ```
 scanOPS/
-├── banco de dados/   # persistência (README; ainda não aparece na raiz do GitHub)
-├── Cirurgias/        # cirurgia e seu status
-├── Contagem/         # contagem e itens contados
-├── Hardware/         # balança e câmera
-├── Instrumentos/     # cadastro de instrumentos
-├── Pessoas/          # paciente, cirurgião e demais usuários
-├── Relatorios/       # relatórios gerados
-├── Servicos/         # regras de negócio
-├── frontend/         # aplicação React (Vite)
-├── Program.cs
-└── scanOPS.csproj
+├── Api/                 # TratadorDeExcecoes e Dtos/ (contrato com o front)
+├── Cirurgias/           # Procedimento, StatusProcedimento
+├── Contagem/            # ItemProcedimento, StatusItem (namespace ScanOPS.Contagens)
+├── Excecoes/            # RegraDeNegocioException
+├── Hardware/            # IBalanca, BalancaSimulada, BalancaComRuido, ConfiguracaoDeHardware,
+│                        # FalhaDeHardwareException, ICamera, CameraSimulada
+├── Instrumentos/        # Instrumento, TipoInstrumento
+├── Persistencia/        # ScanOpsDbContext, repositório, InicializadorDoBanco
+├── Pessoas/             # Paciente, Usuario, TipoUsuario
+├── Relatorios/          # Relatorio, StatusAssinatura
+├── Servicos/            # ServicoDePesagem, Demonstracao
+├── tests/ScanOPS.Tests/ # testes automatizados
+├── docs/                # este documento, ADR, roadmap e av2/
+├── frontend/            # React + Vite
+├── Program.cs           # configuração e rotas
+├── appsettings.json     # banco e tipo de balança
+└── scanOPS.sln
 ```
 
-> ⚠️ No GitHub as pastas são `Relatorios` e `Servicos` (maiúsculas), mas o README mostra minúsculas. **Padronizar** para evitar falha em Linux (sistema de arquivos diferencia maiúsculas).
-> Namespaces: `ScanOPS.*` (ex.: `ScanOPS.Cirurgias`, `ScanOPS.Contagem`).
-
----
+Namespaces: `ScanOPS.<Pasta>`, exceto `Contagem/` → `ScanOPS.Contagens` e `Api/Dtos/` → `ScanOPS.Api.Dtos`.
 
 ## 5. Modelo de domínio
 
-Classes vindas dos diagramas UML do projeto. Atributos e métodos são 🟡 **propostas** — ajustar ao diagrama oficial.
+Resumo (diagrama completo, com atributos, métodos, multiplicidades e invariante, em
+[`av2/modelo-classes.md`](av2/modelo-classes.md)):
 
-```mermaid
-classDiagram
-    class Pessoa {
-        <<abstract>>
-        +Guid Id
-        +string Nome
-    }
-    class Paciente
-    class Usuario {
-        +string Email
-        +string SenhaHash
-    }
-    class Cirurgiao
-    class Instrumentista
-    class Administrador
-    class Instrumento {
-        +Guid Id
-        +string Nome
-        +double PesoReferenciaGramas
-    }
-    class Cirurgia {
-        +Guid Id
-        +DateTime DataHora
-        +StatusCirurgia Status
-        +IniciarContagemInicial()
-        +RegistrarContagemFinal()
-    }
-    class Contagem {
-        +TipoContagem Tipo
-        +DateTime Momento
-        +AdicionarItem(item)
-    }
-    class ItemContagem {
-        +double PesoMedidoGramas
-        +bool ReconhecidoPorImagem
-        +StatusItem Status
-    }
-    class IBalanca {
-        <<interface>>
-        +LerPeso() double
-    }
-    class ICamera {
-        <<interface>>
-        +IdentificarInstrumentos() IList
-    }
-    Pessoa <|-- Paciente
-    Pessoa <|-- Usuario
-    Usuario <|-- Cirurgiao
-    Usuario <|-- Instrumentista
-    Usuario <|-- Administrador
-    Cirurgia "1" --> "1" Paciente
-    Cirurgia "1" --> "1" Cirurgiao
-    Cirurgia "1" *-- "0..2" Contagem
-    Contagem "1" *-- "0..*" ItemContagem
-    ItemContagem "*" --> "1" Instrumento
-```
-
-**Enums** 🟡: `StatusCirurgia` (Agendada, EmAndamento, Concluida, ComPendencia), `TipoContagem` (Inicial, Final), `StatusItem` (Ok, Faltando, PesoDivergente), `PerfilUsuario`.
-
-> Observação: o segundo diagrama usa os nomes `Procedimento`/`ItemProcedimento`. No código, usar os nomes do repositório: **`Cirurgia`** e **`ItemContagem`**. Documentar o equivalente para a banca.
+- `Procedimento` — objeto central e raiz do agregado; estados `Planejado → EmAndamento → Finalizado`
+  ou `Planejado → Cancelado`; é o único que altera o próprio status e os itens.
+- `ItemProcedimento` — **composição** dentro do procedimento; quantidades prevista, inicial e final,
+  peso medido, status `Pendente/Conferido/Divergente`.
+- `Instrumento` — cadastro com `PesoReferencia`; associado aos itens.
+- `Paciente`, `Usuario` (senha com hash SHA-256), `Relatorio` (assinaturas por perfil; PDF não implementado).
+- Não há hierarquia `Pessoa`/subclasses de usuário: o perfil é o enum `TipoUsuario`.
 
 ### Regras de negócio
 
-| # | Regra | Estado |
+| Id | Regra | Onde |
 |---|---|---|
-| RN1 | Uma cirurgia tem uma contagem inicial e uma final. | ✅ |
-| RN2 | Item **faltante** = instrumento na contagem inicial que não aparece na final. | ✅ |
-| RN3 | Item com **peso divergente** = peso medido ≠ peso de referência do instrumento. | ✅ |
-| RN4 | Divergência de peso usa uma **tolerância** configurável (em gramas). | 🟡 valor a definir |
-| RN5 | Cirurgia só é encerrada como "Concluída" se não houver pendências. | 🟡 |
-| RN6 | A contagem final só é permitida depois de existir a inicial. | 🟡 |
-| RN7 | Somente usuários autenticados operam o sistema; perfis limitam as ações. | 🟡 |
+| RN1 | Só inicia procedimento `Planejado` | `Procedimento.Iniciar` |
+| RN2 | Só finaliza procedimento `EmAndamento` | `Procedimento.Finalizar` |
+| RN3 | Divergência exige justificativa para finalizar | `Procedimento.Finalizar` |
+| RN4 | Peso medido = referência × quantidade inicial, tolerância ±2 g | `ItemProcedimento.ConferePeso` |
+| RN5 | Contagem só `EmAndamento`; entrada > 0, saída ≥ 0, peso ≥ 0 | `Procedimento.RegistrarEntrada/Saida/Peso` |
 
----
+Critérios de aceitação e testes de cada regra: [`av2/especificacao.md`](av2/especificacao.md) e
+[`av2/rastreabilidade.md`](av2/rastreabilidade.md).
 
 ## 6. Hardware
 
-- Acesso **exclusivo** pelo back-end (o front nunca fala com balança/câmera).
-- `IBalanca` e `ICamera` em `Hardware/`; os serviços dependem **apenas das interfaces**.
-- Implementações: reais (integração) e **simuladas** (`BalancaSimulada`, `CameraSimulada`) para desenvolver e testar sem equipamento (ADR-006).
-- Implementação concreta escolhida por configuração/injeção de dependência em `Program.cs`.
+- Acesso exclusivo pelo back-end.
+- `IBalanca` tem duas implementações: `BalancaSimulada` (peso exato) e `BalancaComRuido` (ruído e
+  deriva). A escolhida vem de `appsettings.json` → `Balanca:Tipo` e é registrada por injeção de
+  dependência em `Hardware/ConfiguracaoDeHardware.cs`.
+- `ServicoDePesagem` usa a balança injetada; se ela não responder, lança `FalhaDeHardwareException` (HTTP 503).
+- `ICamera`/`CameraSimulada` existem mas não são usadas pela API.
+- Não há implementação de hardware real.
 
----
+## 7. API
 
-## 7. Serviços (`Servicos/`)
-
-| Serviço | Responsabilidade |
-|---|---|
-| `CirurgiaService` | Criar/abrir/encerrar cirurgia e controlar o status. |
-| `ContagemService` | Executar contagem (ler balança + câmera) e **comparar inicial × final**. |
-| `ConferenciaPesoService` | Validar peso medido contra o peso de referência (RN3/RN4). |
-| `InstrumentoService` | Cadastro e consulta de instrumentos. |
-| `AutenticacaoService` 🟡 | Login e perfis. |
-| `RelatorioService` | Montar o relatório final da cirurgia. |
-
----
-
-## 8. API (rotas) 🟡
-
-Proposta inicial — confirmar quando a API for implementada.
+Todas as rotas recebem e devolvem DTOs (`Api/Dtos/`); erros saem como `{ "erro": "..." }`.
 
 | Método | Rota | Descrição |
 |---|---|---|
-| POST | `/api/auth/login` | Autenticar usuário |
-| GET/POST | `/api/instrumentos` | Listar / cadastrar instrumentos |
-| GET/POST | `/api/pacientes` | Listar / cadastrar pacientes |
-| POST | `/api/cirurgias` | Nova cirurgia |
-| GET | `/api/cirurgias/{id}` | Detalhe e status |
-| POST | `/api/cirurgias/{id}/contagem-inicial` | Executar contagem inicial |
-| POST | `/api/cirurgias/{id}/contagem-final` | Executar contagem final e comparar |
-| GET | `/api/cirurgias/{id}/relatorio` | Relatório final |
+| GET | `/api/teste` | Verifica se a API está no ar |
+| POST | `/api/login` | Autentica por e-mail e senha (401 se inválido) |
+| GET/POST | `/api/instrumentos` | Lista / cadastra |
+| GET/PUT/DELETE | `/api/instrumentos/{id}` | Detalhe / edita / exclui (400 se usado em procedimento) |
+| GET/POST | `/api/pacientes` | Lista / cadastra |
+| GET/PUT/DELETE | `/api/pacientes/{id}` | Detalhe / edita / exclui (400 se tem procedimento) |
+| POST | `/api/procedimentos` | Planeja um procedimento (`Planejado`) |
+| GET | `/api/procedimentos/{id}` | Detalhe |
+| POST | `/api/procedimentos/{id}/iniciar` | Inicia (RN1) |
+| POST | `/api/procedimentos/{id}/cancelar` | Cancela com motivo |
+| GET | `/api/procedimento-atual` | Procedimento de início mais recente, com itens |
+| POST | `/api/procedimento-atual/itens/{itemId}/entrada` | Contagem inicial (RN5) |
+| POST | `/api/procedimento-atual/itens/{itemId}/saida` | Contagem final + peso + câmera (RN5) |
+| POST | `/api/procedimento-atual/itens/{itemId}/pesar` | Lê a balança configurada e grava o peso |
+| POST | `/api/procedimento-atual/finalizar` | Finaliza (RN2, RN3) |
 
-Padrões: JSON, DTOs de entrada/saída (não expor entidades de domínio), códigos HTTP corretos, CORS liberado para `http://localhost:5173` em desenvolvimento.
+Códigos de erro: regra violada → 400; recurso inexistente → 404; JSON inválido → 400; balança
+indisponível → 503; erro inesperado → 500 (sem detalhes internos). Ver
+[`av2/tratamento-de-falhas.md`](av2/tratamento-de-falhas.md).
 
----
+As rotas **não** exigem usuário autenticado (ver ADR-008).
 
-## 9. Front-end ✅ (telas) / 🟡 (organização)
+## 8. Front-end
 
-Mapa de 9 telas: **Login · Visão Geral · Paciente · Novo Procedimento · Instrumentos · Contagem Inicial · Procedimento em Andamento · Contagem Final · Relatório Final.**
+Telas: Login, Visão Geral, Paciente, Novo Procedimento, Instrumentos, Contagem Inicial,
+Procedimento em Andamento, Contagem Final, Relatório Final. As chamadas HTTP ficam em cada página
+(não há camada `api/` única). A tela Novo Procedimento ainda não usa as rotas de planejar/iniciar.
+Desenvolvimento: front em `http://localhost:5173`, API em `http://localhost:5000` (CORS liberado para 5173/5174).
 
-- Login segue o mockup pronto (split-screen: foto de centro cirúrgico + formulário "Acesso ao Sistema", logo Device Tech).
-- Camada `api/` única no front concentra as chamadas HTTP.
-- Dev: `http://localhost:5173` → API em `http://localhost:5000`.
-
----
-
-## 10. Como executar ✅
+## 9. Como executar
 
 ```bash
-# Back-end (terminal 1)
-dotnet run --urls http://localhost:5000
+dotnet build
+dotnet test
+dotnet run --urls http://localhost:5000   # cria scanops.db na primeira execução
 
-# Front-end (terminal 2)
 cd frontend
 npm install
-npm run dev     # http://localhost:5173
+npm run dev                                # http://localhost:5173
 ```
 
----
-
-## 11. Convenções para desenvolvimento com IA
-
-Cole este bloco no início de qualquer pedido de código:
+## 10. Convenções para desenvolvimento (inclusive com IA)
 
 ```
-Contexto: projeto scanOPS (C# .NET 10 + React/Vite). Leia ARCHITECTURE.md, ADR.md e ROADMAP.md.
+Contexto: projeto scanOPS (C# .NET 10 + EF Core/SQLite + React/Vite). Leia docs/ARCHITECTURE.md,
+docs/ADR.md e docs/av2/especificacao.md.
 Regras:
-- Domínio não depende de serviços, API, banco ou hardware concreto.
-- Hardware só via IBalanca/ICamera (use as simuladas em dev).
-- Regras de negócio ficam em Servicos/, nunca em controllers/rotas.
-- Namespaces ScanOPS.<Pasta>. Nomes de classes em PT-BR, como no repositório.
-- API devolve DTOs, não entidades.
-- Implemente SOMENTE a tarefa pedida; não altere outras pastas.
-- Inclua testes para regras de negócio (RN1–RN7).
-- Se algo estiver marcado 🟡, pergunte antes de decidir.
+- Regras de negócio ficam nos métodos do domínio (Procedimento, ItemProcedimento), nunca nas rotas.
+- Só o Procedimento altera seus itens e seu status; não exponha setters públicos de contagem.
+- Violação de regra: lance RegraDeNegocioException. Falha de equipamento: FalhaDeHardwareException.
+  As rotas não usam try/catch; o TratadorDeExcecoes responde.
+- Hardware só via IBalanca/ICamera.
+- A API recebe e devolve DTOs de Api/Dtos, nunca entidades.
+- Namespaces ScanOPS.<Pasta>; nomes de classes em português.
+- Implemente SOMENTE a tarefa pedida e inclua testes (sucesso e violação da regra).
+- Rode dotnet build e dotnet test antes de considerar pronto.
 ```
 
----
+## 11. Segurança e pontos de atenção
 
-## 12. Segurança e pontos de atenção
+- Senhas guardadas com hash SHA-256 (sem *salt*). A conta `medico@scanops.com / 123456` é só de demonstração.
+- Rotas sem controle de acesso por usuário/perfil.
+- Dados de paciente são sensíveis: o `scanops.db` fica fora do Git (`.gitignore`).
+- O banco usa `EnsureCreated` (sem migrações): após mudanças no modelo, apague o `scanops.db`.
 
-- **Credenciais:** o README traz um e-mail e senha de demonstração. Nunca versionar credenciais reais; senhas sempre com hash.
-- Corrigir o comando de clone do README (`SEU-USUARIO/SEU-REPO`).
-- Padronizar maiúsculas/minúsculas das pastas (seção 4).
-- Dados de paciente são sensíveis: minimizar o que é armazenado e exibido.
-
----
-
-## 13. Glossário
+## 12. Glossário
 
 | Termo | Significado |
 |---|---|
-| Contagem inicial | Inventário dos instrumentos antes da cirurgia. |
-| Contagem final | Inventário ao término da cirurgia. |
-| Peso de referência | Peso esperado de um instrumento (cadastrado). |
-| Dupla métrica | Verificação simultânea por peso e por imagem. |
-| Item divergente | Item cujo peso ou reconhecimento não confere. |
+| Contagem inicial | Unidades de cada instrumento que entraram em campo (`QuantidadeInicial`). |
+| Contagem final | Unidades que voltaram (`QuantidadeFinal`). |
+| Peso de referência | Peso cadastrado de uma unidade do instrumento. |
+| Divergência | Contagem inicial ≠ final, ou peso fora da tolerância. |
+| Procedimento atual | O procedimento com início mais recente; é o usado pelas telas de contagem. |

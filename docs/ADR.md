@@ -2,22 +2,26 @@
 
 > Registro das decisões de arquitetura e **por que** foram tomadas. Ao mudar uma decisão, **não apague**: crie um novo ADR e marque o antigo como `Substituído`.
 > Veja também: [`ARCHITECTURE.md`](ARCHITECTURE.md) e [`ROADMAP.md`](ROADMAP.md).
+>
+> Revisado em 15/11/2026: cada ADR ganhou uma linha **Implementação** dizendo o que existe no código.
 
 **Status possíveis:** `Proposto` · `Aceito` · `Substituído` · `Rejeitado`
 
 ## Índice
 
-| ADR | Título | Status |
-|---|---|---|
-| 001 | Back-end em C# / .NET 10 | Aceito |
-| 002 | Front-end React + Vite separado do back-end | Aceito |
-| 003 | Comunicação via API HTTP/JSON | Aceito |
-| 004 | Dupla métrica: peso + imagem | Aceito |
-| 005 | Organização do código por domínio (pastas e namespaces) | Aceito |
-| 006 | Hardware atrás de interfaces, com implementações simuladas | Aceito |
-| 007 | Banco de dados e padrão Repository | Proposto |
-| 008 | Autenticação e perfis de usuário | Proposto |
-| 009 | Documentação como contexto para desenvolvimento com IA | Aceito |
+| ADR | Título | Status | Implementado? |
+|---|---|---|---|
+| 001 | Back-end em C# / .NET 10 | Aceito | Sim |
+| 002 | Front-end React + Vite separado do back-end | Aceito | Sim |
+| 003 | Comunicação via API HTTP/JSON com DTOs | Aceito | Sim (DTOs desde `f0a26f1`) |
+| 004 | Dupla métrica: peso + imagem | Aceito | Parcial (só peso no back-end) |
+| 005 | Organização do código por domínio (pastas e namespaces) | Aceito | Sim |
+| 006 | Hardware atrás de interfaces, com implementações simuladas | Aceito | Sim (balança); câmera não usada |
+| 007 | Banco de dados e padrão Repository | Aceito | Sim (SQLite + EF Core) |
+| 008 | Autenticação e perfis de usuário | Proposto | Parcial (login com hash; rotas abertas) |
+| 009 | Documentação como contexto para desenvolvimento com IA | Aceito | Sim |
+| 010 | Regra de negócio × falha excepcional, com tratamento central | Aceito | Sim |
+| 011 | Regras no domínio e `ItemProcedimento` dentro do agregado | Aceito | Sim |
 
 ---
 
@@ -30,6 +34,7 @@
   - (+) Linguagem fortemente tipada, com bom suporte a interfaces, herança e generics, o que facilita demonstrar os pilares de POO.
   - (+) Ecossistema único para API, serviços e acesso a dispositivos.
   - (−) A equipe precisa conhecer o .NET; o front-end exige uma segunda tecnologia.
+- **Implementação:** `scanOPS.csproj` (Sdk.Web, `net10.0`), minimal API em `Program.cs`.
 
 ## ADR-002 — Front-end React + Vite separado do back-end
 
@@ -40,16 +45,18 @@
   - (+) Front e back evoluem e rodam separados (`localhost:5173` e `localhost:5000`).
   - (+) Regras de negócio ficam só no back-end e são testáveis sem interface.
   - (−) Exige configurar CORS em desenvolvimento.
+- **Implementação:** `frontend/`; CORS para `localhost:5173` e `5174` em `Program.cs`.
 
-## ADR-003 — Comunicação via API HTTP/JSON
+## ADR-003 — Comunicação via API HTTP/JSON com DTOs
 
 - **Status:** Aceito
 - **Contexto:** O front precisa operar o fluxo de contagem sem acesso direto ao hardware.
-- **Decisão:** Toda comunicação passa por uma API HTTP com JSON. O back-end devolve **DTOs**, não entidades de domínio.
+- **Decisão:** Toda comunicação passa por uma API HTTP com JSON. O back-end recebe e devolve **DTOs**, não entidades de domínio.
 - **Consequências:**
   - (+) Contrato claro entre as camadas.
   - (+) O domínio fica protegido de mudanças na interface.
   - (−) Exige mapeamento entidade ↔ DTO.
+- **Implementação:** até o commit `f0a26f1` a API **expunha as entidades** (`Instrumento`, `Paciente`), contrariando esta decisão; isso causava dois defeitos de integração (tipo de instrumento como número; data vazia recusada). Desde então, `Api/Dtos/` define `...Requisicao`/`...Resposta` para todas as rotas. Testes: `tests/ScanOPS.Tests/Api/ContratoApiTests.cs`.
 
 ## ADR-004 — Dupla métrica: peso + imagem
 
@@ -59,50 +66,75 @@
 - **Consequências:**
   - (+) Maior segurança contra falsos "OK".
   - (−) Mais complexidade e mais pontos de falha (dois dispositivos).
-  - (−) Precisa de **tolerância de peso** definida (ver ARCHITECTURE, RN4).
+  - (−) Precisa de **tolerância de peso** definida.
+- **Implementação (parcial):** a conferência de peso está no domínio (RN4, tolerância de ±2 g em `ItemProcedimento.ToleranciaPesoPadrao`). A câmera tem interface e simulação, mas **nenhuma rota a usa**: o campo `IdentificadoPorCamera` é informado pelo cliente e não entra no cálculo de divergência.
 
 ## ADR-005 — Organização do código por domínio
 
 - **Status:** Aceito
 - **Contexto:** O projeto cresce com várias classes; é preciso saber onde cada coisa fica.
-- **Decisão:** Uma pasta por área do domínio (`Cirurgias`, `Contagem`, `Instrumentos`, `Pessoas`, `Hardware`, `Servicos`, `Relatorios`), com namespaces `ScanOPS.<Pasta>`. Nomes em português, como no repositório.
+- **Decisão:** Uma pasta por área (`Cirurgias`, `Contagem`, `Instrumentos`, `Pessoas`, `Hardware`, `Servicos`, `Relatorios`), com namespaces `ScanOPS.<Pasta>`. Nomes em português, como no repositório.
 - **Consequências:**
-  - (+) Fácil localizar código e delimitar tarefas para a IA.
-  - (−) É preciso padronizar maiúsculas/minúsculas das pastas (README × GitHub).
+  - (+) Fácil localizar código e delimitar tarefas.
+  - (−) É preciso padronizar maiúsculas/minúsculas das pastas.
+- **Implementação:** pastas acrescentadas depois: `Api/` (tratamento de erros e DTOs), `Excecoes/` e `Persistencia/`. Exceção ao padrão de namespace: `Contagem/` usa `ScanOPS.Contagens`. A pasta de documentação foi padronizada como `docs/` (minúscula) e o README foi para a raiz.
 
 ## ADR-006 — Hardware atrás de interfaces, com implementações simuladas
 
 - **Status:** Aceito
 - **Contexto:** Nem todos os integrantes têm balança/câmera; o hardware real é a parte mais arriscada.
-- **Decisão:** Definir `IBalanca` e `ICamera`. Serviços dependem só das interfaces. Criar `BalancaSimulada` e `CameraSimulada` para desenvolvimento e testes; as reais entram depois. A escolha é feita por injeção de dependência em `Program.cs`.
+- **Decisão:** Definir `IBalanca` e `ICamera`. O código que usa hardware depende só das interfaces. Implementações simuladas para desenvolvimento e testes; as reais entram depois. A escolha é feita por injeção de dependência.
 - **Consequências:**
   - (+) Aplica polimorfismo, abstração e inversão de dependência.
   - (+) Toda a lógica pode ser testada sem equipamento.
   - (−) A integração real pode revelar diferenças que a simulação não cobre.
+- **Implementação:** `IBalanca` com `BalancaSimulada` e `BalancaComRuido`, escolhida por `appsettings.json` → `Balanca:Tipo` (`Hardware/ConfiguracaoDeHardware.cs`) e usada por `ServicoDePesagem` na rota `/pesar`. `ICamera`/`CameraSimulada` existem, mas não são registradas nem usadas. Comparação com a alternativa (classe concreta) em [`av2/analise-modelo.md`](av2/analise-modelo.md).
 
 ## ADR-007 — Banco de dados e padrão Repository
 
-- **Status:** Proposto
-- **Contexto:** O README lista persistência como pendente, e o banco ainda não foi escolhido.
-- **Decisão (proposta):** Acessar dados por interfaces de repositório (`IRepositorio<T>`), sem acoplar os serviços a um banco específico. Escolher o SGBD (ex.: SQLite para o trabalho acadêmico) e o acesso a dados (ex.: Entity Framework Core) em reunião da equipe.
-- **Alternativas:** repositório em memória na primeira fase; SQLite; SQL Server/PostgreSQL.
-- **Consequências:** permite começar sem banco e trocar a implementação depois. **Pendente:** registrar a escolha final e mudar o status para Aceito.
+- **Status:** Aceito (era Proposto)
+- **Contexto:** Os dados ficavam em listas na memória e se perdiam a cada reinício da API.
+- **Decisão:** **SQLite** com **Entity Framework Core 10**. O agregado `Procedimento` é acessado por `IRepositorioDeProcedimentos`, que sempre carrega o procedimento completo (itens, instrumentos e pessoas). Cadastros simples (instrumentos, pacientes, usuários) usam o `ScanOpsDbContext` direto nas rotas. O banco é criado por `EnsureCreated` na inicialização, com dados de demonstração.
+- **Alternativas consideradas:** repositório genérico `IRepositorio<T>` para todas as classes (descartado: a única entidade com regras e composição é o `Procedimento`; para os cadastros seria uma camada sem comportamento); SQL Server/PostgreSQL (exigiriam instalar servidor; SQLite é um arquivo).
+- **Consequências:**
+  - (+) Nenhuma instalação: o banco é criado sozinho; testes usam um arquivo temporário por teste.
+  - (−) Sem migrações: após mudar o modelo, é preciso apagar `scanops.db`.
+- **Implementação:** `Persistencia/`; testes em `tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs`.
 
 ## ADR-008 — Autenticação e perfis de usuário
 
 - **Status:** Proposto
-- **Contexto:** Há tela de Login e perfis nos diagramas (Cirurgião, Instrumentista, Administrador). O README mostra uma conta de demonstração.
-- **Decisão (proposta):** Autenticação por e-mail e senha com **hash** de senha; perfil define as ações permitidas. Conta de demonstração apenas em ambiente de desenvolvimento.
-- **Consequências:** (+) segurança mínima adequada a dados de saúde; (−) exige definir a matriz de permissões por perfil. **Pendente:** definir mecanismo de sessão/token.
+- **Contexto:** Há tela de Login e perfis (Cirurgião, Instrumentista, Administrador).
+- **Decisão (proposta):** Autenticação por e-mail e senha com **hash**; o perfil define as ações permitidas. Conta de demonstração apenas em desenvolvimento.
+- **Consequências:** (+) segurança mínima adequada a dados de saúde; (−) exige definir a matriz de permissões por perfil.
+- **Implementação (parcial):** `Usuario.Autenticar` com hash SHA-256 e rota `/api/login`. **Não existe** sessão nem token: as demais rotas não exigem usuário autenticado e não há verificação de perfil (por exemplo, qualquer usuário pode ser registrado como cirurgião de um procedimento).
 
 ## ADR-009 — Documentação como contexto para desenvolvimento com IA
 
 - **Status:** Aceito
-- **Contexto:** O professor orienta documentar tudo antes de codar com IA.
-- **Decisão:** Manter `ARCHITECTURE.md`, `ADR.md` e `ROADMAP.md` na raiz. Todo pedido de código à IA inclui esses arquivos como contexto e o bloco de regras da seção 11 do ARCHITECTURE.
+- **Contexto:** O professor orienta documentar antes de codar com IA.
+- **Decisão:** Manter `ARCHITECTURE.md`, `ADR.md` e `ROADMAP.md` em `docs/`. Pedidos de código à IA incluem esses arquivos e o bloco de regras da seção 10 do ARCHITECTURE.
 - **Consequências:**
   - (+) Código gerado consistente com a arquitetura.
-  - (−) Os documentos precisam ser mantidos atualizados a cada mudança relevante.
+  - (−) Os documentos precisam ser mantidos atualizados: estes três ficaram desatualizados durante a implementação e foram revisados em 15/11/2026.
+- **Implementação:** documentos em `docs/`; documentação da AV2 em `docs/av2/`.
+
+## ADR-010 — Regra de negócio × falha excepcional, com tratamento central
+
+- **Status:** Aceito
+- **Contexto:** As rotas capturavam `InvalidOperationException` uma a uma, com `try/catch` repetido, e não havia distinção entre "o usuário pediu algo proibido" e "um equipamento falhou".
+- **Decisão:** `RegraDeNegocioException` (`Excecoes/`) para violações de regra → HTTP 400 com a mensagem do domínio; `FalhaDeHardwareException` (`Hardware/`) para falhas de equipamento → HTTP 503 com mensagem genérica. Um único `IExceptionHandler` (`Api/TratadorDeExcecoes.cs`) decide código e mensagem e registra o log; as rotas não usam `try/catch`.
+- **Alternativas:** `try/catch` em cada rota (duplicação e risco de esquecer); devolver códigos de erro em vez de exceções (o domínio teria de retornar resultados que toda rota precisaria checar).
+- **Consequências:** (+) nenhum detalhe interno chega ao usuário; (+) comportamento uniforme; (−) o fluxo de erro fica menos visível na leitura de cada rota.
+- **Implementação:** commit `09e70af`. Detalhes e testes em [`av2/tratamento-de-falhas.md`](av2/tratamento-de-falhas.md).
+
+## ADR-011 — Regras no domínio e `ItemProcedimento` dentro do agregado
+
+- **Status:** Aceito
+- **Contexto:** O planejamento inicial previa regras em serviços (`CirurgiaService`, `ContagemService` etc.) e o código original deixava as rotas alterarem os itens diretamente. Isso permitiu um defeito real: procedimento finalizado aceitava novas contagens.
+- **Decisão:** As regras ficam nos métodos do domínio. `Procedimento` é a raiz do agregado: só ele cria e altera `ItemProcedimento` (construtor e métodos `internal`, lista `IReadOnlyList`) e só ele muda o próprio status. `Finalizar` valida tudo antes de alterar qualquer coisa. Serviços existem apenas para coordenar o que não pertence ao domínio (`ServicoDePesagem`, que liga a balança ao procedimento).
+- **Consequências:** (+) a invariante "registro fechado não muda" tem um único guardião; (−) é preciso carregar o procedimento inteiro para alterar um item.
+- **Implementação:** commits `eb9a8ed` (correção) e `4495c04` (encapsulamento). Comparação com a alternativa em [`av2/analise-modelo.md`](av2/analise-modelo.md); depuração do defeito em [`av2/registro-depuracao.md`](av2/registro-depuracao.md).
 
 ---
 
@@ -116,4 +148,5 @@
 - **Decisão:** (o que será feito)
 - **Alternativas:** (o que foi considerado)
 - **Consequências:** (+) ... (−) ...
+- **Implementação:** (onde está no código; commit)
 ```

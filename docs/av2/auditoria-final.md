@@ -47,7 +47,7 @@ Legenda: **Atendido** = existe implementação e evidência verificável no repo
 | Encapsulamento por `internal` | Protege contra outros projetos (os testes comprovam), não contra código dentro do próprio projeto da API | Separar o domínio num projeto próprio fecharia esse limite |
 | Banco sem migrações | `EnsureCreated` não atualiza um `scanops.db` existente quando o modelo muda (documentado no README) | Em desenvolvimento, apagar o arquivo |
 | Front-end | Não foi compilado nem executado nas verificações (Node.js não instalado na máquina usada). A tela "Novo Procedimento" está vazia e ainda não usa as rotas de planejar/iniciar | O fluxo F1 é executável pela API, não pela interface |
-| Documentos antigos em `docs/` | `ARCHITECTURE.md`, `ADR.md` e `ROADMAP.md` foram escritos antes desta etapa e podem descrever planos diferentes do código | Correção prevista na etapa seguinte; em caso de conflito, valem os documentos de `docs/av2/` |
+| Documentos de arquitetura em `docs/` | Foram escritos antes da implementação e estavam desatualizados (nomes `Cirurgia`/`ItemContagem`, regras "propostas", banco "a definir"). Revisados em 15/11/2026 para descrever o código; decisões novas registradas como ADR-010 e ADR-011 | Resolvido; o `ROADMAP.md` marca o que mudou de plano |
 
 ## 3. Como repetir a auditoria
 
