@@ -32,18 +32,17 @@ public static class Demonstracao
         var balanca = new BalancaSimulada();
         var camera = new CameraSimulada();
 
-        procedimento.Itens[0].RegistrarEntrada(2);
-        procedimento.Itens[1].RegistrarEntrada(1);
+        var itemPinca = procedimento.Itens[0];
+        var itemTesoura = procedimento.Itens[1];
+
+        procedimento.RegistrarEntrada(itemPinca.Id, 2);
+        procedimento.RegistrarEntrada(itemTesoura.Id, 1);
 
         balanca.DefinirPeso(100m);
         camera.DefinirLeituras(new LeituraCamera("P001", 0.97), new LeituraCamera("P001", 0.95));
 
-        procedimento.Itens[0].RegistrarSaida(2);
-        procedimento.Itens[0].PesoMedido = balanca.Pesar();
-        procedimento.Itens[0].IdentificadoPorCamera = camera.Escanear().Count > 0;
-
-        procedimento.Itens[1].RegistrarSaida(0);
-        procedimento.Itens[1].PesoMedido = 0m;
+        procedimento.RegistrarSaida(itemPinca.Id, 2, balanca.Pesar(), camera.Escanear().Count > 0);
+        procedimento.RegistrarSaida(itemTesoura.Id, 0, 0m, false);
 
         try
         {
