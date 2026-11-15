@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ScanOPS.Api;
+using ScanOPS.Api.Dtos;
 using ScanOPS.Cirurgias;
 using ScanOPS.Contagens;
 using ScanOPS.Excecoes;
@@ -44,7 +45,7 @@ using (var escopo = app.Services.CreateScope())
 
 app.MapGet("/api/teste", () => new { mensagem = "API funcionando!" });
 
-app.MapPost("/api/login", (LoginRequest dados, ScanOpsDbContext db) =>
+app.MapPost("/api/login", (LoginRequisicao dados, ScanOpsDbContext db) =>
 {
     var email = dados.Email.Trim().ToLower();
     var encontrado = db.Usuarios
@@ -55,43 +56,38 @@ app.MapPost("/api/login", (LoginRequest dados, ScanOpsDbContext db) =>
     if (encontrado is null)
         return Results.Unauthorized();
 
-    return Results.Ok(new
-    {
-        encontrado.Id,
-        encontrado.Nome,
-        encontrado.Cargo
-    });
+    return Results.Ok(LoginResposta.De(encontrado));
 });
 
 // ===================== INSTRUMENTOS (CRUD) =====================
+// Entrada e saída por DTOs (Api/Dtos): a API nunca recebe nem devolve a entidade de domínio.
 
-app.MapGet("/api/instrumentos", (ScanOpsDbContext db) => db.Instrumentos.OrderBy(i => i.Nome).ToList());
+app.MapGet("/api/instrumentos", (ScanOpsDbContext db) =>
+    db.Instrumentos.OrderBy(i => i.Nome).AsEnumerable().Select(InstrumentoResposta.De).ToList());
 
 app.MapGet("/api/instrumentos/{id}", (Guid id, ScanOpsDbContext db) =>
 {
     var item = db.Instrumentos.Find(id);
-    return item is null ? Results.NotFound() : Results.Ok(item);
+    return item is null ? Results.NotFound() : Results.Ok(InstrumentoResposta.De(item));
 });
 
-app.MapPost("/api/instrumentos", (Instrumento novo, ScanOpsDbContext db) =>
+app.MapPost("/api/instrumentos", (InstrumentoRequisicao dados, ScanOpsDbContext db) =>
 {
+    var novo = dados.CriarInstrumento();
     db.Instrumentos.Add(novo);
     db.SaveChanges();
-    return Results.Created($"/api/instrumentos/{novo.Id}", novo);
+    return Results.Created($"/api/instrumentos/{novo.Id}", InstrumentoResposta.De(novo));
 });
 
-app.MapPut("/api/instrumentos/{id}", (Guid id, Instrumento dados, ScanOpsDbContext db) =>
+app.MapPut("/api/instrumentos/{id}", (Guid id, InstrumentoRequisicao dados, ScanOpsDbContext db) =>
 {
     var item = db.Instrumentos.Find(id);
     if (item is null) return Results.NotFound();
 
-    item.Editar(dados.Nome, dados.Material, dados.Tamanho);
-    item.Codigo = dados.Codigo;
-    item.Tipo = dados.Tipo;
-    item.PesoReferencia = dados.PesoReferencia;
+    dados.AplicarEm(item);
     db.SaveChanges();
 
-    return Results.Ok(item);
+    return Results.Ok(InstrumentoResposta.De(item));
 });
 
 app.MapDelete("/api/instrumentos/{id}", (Guid id, ScanOpsDbContext db) =>
@@ -109,33 +105,32 @@ app.MapDelete("/api/instrumentos/{id}", (Guid id, ScanOpsDbContext db) =>
 
 // ===================== PACIENTES (CRUD) =====================
 
-app.MapGet("/api/pacientes", (ScanOpsDbContext db) => db.Pacientes.OrderBy(p => p.Nome).ToList());
+app.MapGet("/api/pacientes", (ScanOpsDbContext db) =>
+    db.Pacientes.OrderBy(p => p.Nome).AsEnumerable().Select(PacienteResposta.De).ToList());
 
 app.MapGet("/api/pacientes/{id}", (Guid id, ScanOpsDbContext db) =>
 {
     var item = db.Pacientes.Find(id);
-    return item is null ? Results.NotFound() : Results.Ok(item);
+    return item is null ? Results.NotFound() : Results.Ok(PacienteResposta.De(item));
 });
 
-app.MapPost("/api/pacientes", (Paciente novo, ScanOpsDbContext db) =>
+app.MapPost("/api/pacientes", (PacienteRequisicao dados, ScanOpsDbContext db) =>
 {
+    var novo = dados.CriarPaciente();
     db.Pacientes.Add(novo);
     db.SaveChanges();
-    return Results.Created($"/api/pacientes/{novo.Id}", novo);
+    return Results.Created($"/api/pacientes/{novo.Id}", PacienteResposta.De(novo));
 });
 
-app.MapPut("/api/pacientes/{id}", (Guid id, Paciente dados, ScanOpsDbContext db) =>
+app.MapPut("/api/pacientes/{id}", (Guid id, PacienteRequisicao dados, ScanOpsDbContext db) =>
 {
     var item = db.Pacientes.Find(id);
     if (item is null) return Results.NotFound();
 
-    item.EditarDados(dados.Nome, dados.Alergias, dados.Observacoes);
-    item.DataNascimento = dados.DataNascimento;
-    item.Sexo = dados.Sexo;
-    item.TipoSanguineo = dados.TipoSanguineo;
+    dados.AplicarEm(item);
     db.SaveChanges();
 
-    return Results.Ok(item);
+    return Results.Ok(PacienteResposta.De(item));
 });
 
 app.MapDelete("/api/pacientes/{id}", (Guid id, ScanOpsDbContext db) =>
@@ -159,29 +154,9 @@ static Procedimento ObterAtual(IRepositorioDeProcedimentos repositorio) =>
     repositorio.ObterAtual() ?? throw new KeyNotFoundException("Nenhum procedimento cadastrado.");
 
 app.MapGet("/api/procedimento-atual", (IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterAtual(repositorio);
-    return new
-    {
-        procedimento.Id,
-        procedimento.Tipo,
-        Status = procedimento.Status.ToString(),
-        Itens = procedimento.Itens.Select(i => new
-        {
-            i.Id,
-            Instrumento = i.Instrumento.Nome,
-            i.QuantidadePrevista,
-            i.QuantidadeInicial,
-            i.QuantidadeFinal,
-            i.Diferenca,
-            i.PesoMedido,
-            i.IdentificadoPorCamera,
-            Status = i.Status.ToString()
-        })
-    };
-});
+    ProcedimentoResposta.De(ObterAtual(repositorio)));
 
-app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequest dados, IRepositorioDeProcedimentos repositorio) =>
+app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
 {
     var procedimento = ObterAtual(repositorio);
     procedimento.RegistrarEntrada(itemId, dados.Quantidade);
@@ -189,7 +164,7 @@ app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, Entr
     return Results.Ok();
 });
 
-app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequest dados, IRepositorioDeProcedimentos repositorio) =>
+app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
 {
     var procedimento = ObterAtual(repositorio);
     procedimento.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
@@ -202,25 +177,18 @@ app.MapPost("/api/procedimento-atual/itens/{itemId}/pesar", (Guid itemId, Servic
     var procedimento = ObterAtual(repositorio);
     var peso = pesagem.PesarItem(procedimento, itemId);
     repositorio.Salvar();
-    return Results.Ok(new { pesoMedido = peso });
+    return Results.Ok(new PesagemResposta(peso));
 });
 
-app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequest dados, IRepositorioDeProcedimentos repositorio) =>
+app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
 {
     var procedimento = ObterAtual(repositorio);
     procedimento.Finalizar(dados.Justificativa);
     repositorio.Salvar();
-    return Results.Ok(new { status = procedimento.Status.ToString() });
+    return Results.Ok(new FinalizacaoResposta(procedimento.Status.ToString()));
 });
 
 app.Run();
-
-// ===================== REGISTROS AUXILIARES =====================
-
-record LoginRequest(string Email, string Senha);
-record EntradaRequest(int Quantidade);
-record SaidaRequest(int Quantidade, decimal PesoMedido, bool IdentificadoPorCamera);
-record FinalizarRequest(string? Justificativa);
 
 // Torna a classe Program visível para os testes de integração (WebApplicationFactory).
 public partial class Program { }

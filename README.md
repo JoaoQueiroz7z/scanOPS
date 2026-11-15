@@ -98,6 +98,8 @@ Não é preciso instalar nada: o banco é um arquivo **SQLite** criado automatic
 - Na primeira vez que a API sobe (`dotnet run`), ela cria `scanops.db` na raiz do projeto,
   com as tabelas e os dados de demonstração (usuário acima, dois instrumentos e um procedimento em andamento).
 - Para recomeçar do zero, pare a API e apague o arquivo `scanops.db` (e `scanops.db-shm`/`scanops.db-wal`, se existirem).
+- O banco é criado com `EnsureCreated` (sem migrações): ele **não é atualizado** quando o modelo muda.
+  Depois de baixar uma versão que altere as classes gravadas, apague o `scanops.db` para ele ser recriado.
 - O caminho do banco fica em `appsettings.json` → `ConnectionStrings:ScanOps`.
 - Os testes não usam esse arquivo: cada teste de API cria um banco temporário próprio e o apaga ao final.
 
