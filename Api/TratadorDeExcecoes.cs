@@ -14,6 +14,9 @@ public class TratadorDeExcecoes : IExceptionHandler
     public const string MensagemHardwareIndisponivel =
         "Equipamento de medição indisponível. Verifique a conexão ou faça a conferência manual.";
 
+    public const string MensagemRequisicaoInvalida =
+        "Os dados enviados não estão no formato esperado.";
+
     public const string MensagemErroInesperado =
         "Ocorreu um erro inesperado. Tente novamente mais tarde.";
 
@@ -33,6 +36,9 @@ public class TratadorDeExcecoes : IExceptionHandler
 
             // Recurso pedido não existe (ex.: id de item inválido).
             KeyNotFoundException naoEncontrado => (StatusCodes.Status404NotFound, naoEncontrado.Message),
+
+            // JSON fora do formato do DTO (ex.: texto onde se espera número): erro do cliente, não do servidor.
+            BadHttpRequestException requisicaoInvalida => (requisicaoInvalida.StatusCode, MensagemRequisicaoInvalida),
 
             // Situação excepcional de hardware: detalhe só no log.
             FalhaDeHardwareException => (StatusCodes.Status503ServiceUnavailable, MensagemHardwareIndisponivel),

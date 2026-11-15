@@ -1,0 +1,23 @@
+# Contrato da API com DTOs (passo 7): defeitos de integração front <-> API encontrados e corrigidos
+#
+# ANTES (main e977448, mesmas chamadas, executadas em 2026-11-14 antes da mudança):
+#   instrumento como a tela envia ("tipo":"Afastador","pesoReferencia":"35")  -> HTTP 400 (corpo vazio)
+#   paciente com "dataNascimento":""                                          -> HTTP 400 (corpo vazio)
+#   paciente com "dataNascimento":"1990-05-10"                                -> HTTP 201
+#   GET /api/instrumentos                                                     -> "tipo":1 e "tipo":2 (número; a tela mostrava "1")
+#   Causa: a API recebia/devolvia as entidades (Instrumento, Paciente) direto; o enum TipoInstrumento
+#   era lido como número e a data como DateOnly obrigatória, diferente do que o formulário envia.
+#
+# DEPOIS (branch feat/dtos-api, 2026-11-14 23:42:22):
+## instrumento como a tela envia
+{"id":"ddc5cb68-4c40-4261-a4e5-f202688775a6","nome":"Afastador Farabeuf","codigo":"A001","tipo":"Afastador","material":"Inox","tamanho":"15cm","esterilizacao":"","ativo":true,"pesoReferencia":35}  -> HTTP 201
+## paciente sem data de nascimento
+{"id":"41eb9dfe-830e-4c89-aced-da1d1af3b920","nome":"Maria","dataNascimento":null,"idade":null,"sexo":"F","tipoSanguineo":"O+","alergias":"","observacoes":""}  -> HTTP 201
+## paciente com data de nascimento
+{"id":"ca369214-94ad-4541-9c4b-ac4d139ee9df","nome":"Joana","dataNascimento":"1990-05-10","idade":36,"sexo":"F","tipoSanguineo":"O+","alergias":"","observacoes":""}  -> HTTP 201
+## tipo de instrumento inexistente
+{"erro":"Tipo de instrumento inválido: 'Martelo'. Use um de: Cortante, Pinca, Tesoura, Afastador, Clamp, Canula, Agulha, Outros."}  -> HTTP 400
+## GET /api/instrumentos
+[{"id":"ddc5cb68-4c40-4261-a4e5-f202688775a6","nome":"Afastador Farabeuf","codigo":"A001","tipo":"Afastador","material":"Inox","tamanho":"15cm","esterilizacao":"","ativo":true,"pesoReferencia":35.0},{"id":"7c61bb3a-c7d9-4277-895a-59baa7e7f35c","nome":"Pinça Kelly","codigo":"P001","tipo":"Pinca","material":"","tamanho":"","esterilizacao":"","ativo":true,"pesoReferencia":50.0},{"id":"351daa83-cd2c-49af-842e-9c5069fce5d3","nome":"Tesoura Mayo","codigo":"T001","tipo":"Tesoura","material":"","tamanho":"","esterilizacao":"","ativo":true,"pesoReferencia":80.0}]
+## login (sem hash de senha na resposta)
+{"id":"3ef6d29b-4f9f-43d9-b0fa-4f23f28dc4f2","nome":"Dr. Teste","cargo":"Cirurgiao"}
