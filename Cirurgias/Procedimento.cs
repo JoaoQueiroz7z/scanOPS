@@ -6,8 +6,19 @@ using ScanOPS.Relatorios;
 
 namespace ScanOPS.Cirurgias;
 
+/// <summary>
+/// Objeto central do domínio (raiz do agregado). Controla o ciclo de vida
+/// Planejado -> EmAndamento -> Finalizado (ou Planejado -> Cancelado) e é o
+/// único que altera o próprio Status e os seus itens de contagem.
+///
+/// Invariante protegida: procedimento Finalizado ou Cancelado não aceita
+/// alterações de contagem, e nenhuma operação recusada deixa estado parcial.
+/// Regras de negócio: ver comentários RN1..RN5 e docs/av2/especificacao.md.
+/// </summary>
 public class Procedimento
 {
+    private readonly List<ItemProcedimento> _itens = new();
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Tipo { get; set; } = "";
     public string Descricao { get; set; } = "";
@@ -15,14 +26,18 @@ public class Procedimento
     public DateTime? DataHoraInicio { get; private set; }
     public DateTime? DataHoraFim { get; private set; }
     public StatusProcedimento Status { get; private set; } = StatusProcedimento.Planejado;
-    public string Observacoes { get; set; } = "";
+    public string Observacoes { get; private set; } = "";
 
     public Paciente Paciente { get; set; } = null!;
     public Usuario Cirurgiao { get; set; } = null!;
     public Usuario Instrumentista { get; set; } = null!;
 
-    public List<ItemProcedimento> Itens { get; } = new();
+    // Somente leitura para quem está fora: a lista só muda por AdicionarInstrumento.
+    public IReadOnlyList<ItemProcedimento> Itens => _itens;
 
+    // ===================== Transições de estado =====================
+
+    // RN1: só é possível iniciar um procedimento Planejado.
     public void Iniciar()
     {
         if (Status != StatusProcedimento.Planejado)
@@ -32,38 +47,62 @@ public class Procedimento
         DataHoraInicio = DateTime.Now;
     }
 
+    // RN2: só é possível finalizar um procedimento EmAndamento.
+    // RN3: havendo divergência, a finalização exige justificativa.
+    // Todas as validações acontecem ANTES de qualquer alteração: se algo for
+    // recusado, o procedimento e os itens continuam exatamente como estavam.
     public void Finalizar(string? justificativa = null)
     {
         if (Status != StatusProcedimento.EmAndamento)
             throw new RegraDeNegocioException("Só é possível finalizar um procedimento em andamento.");
 
-        foreach (var item in Itens)
+        bool possuiDivergencia = _itens.Any(i => i.PossuiDivergencia());
+        if (possuiDivergencia && string.IsNullOrWhiteSpace(justificativa))
+            throw new RegraDeNegocioException(
+                "Há divergências na contagem. Informe uma justificativa para finalizar.");
+
+        // A partir daqui nada mais pode falhar: aplica as alterações.
+        foreach (var item in _itens)
             item.Conferir();
 
-        if (ObterDiferencas().Count > 0)
-        {
-            if (string.IsNullOrWhiteSpace(justificativa))
-                throw new RegraDeNegocioException(
-                    "Há divergências na contagem. Informe uma justificativa para finalizar.");
-
-            Observacoes = $"{Observacoes}\n[Justificativa] {justificativa}".Trim();
-        }
+        if (possuiDivergencia)
+            Observacoes = $"{Observacoes}\n[Justificativa] {justificativa!.Trim()}".Trim();
 
         Status = StatusProcedimento.Finalizado;
         DataHoraFim = DateTime.Now;
     }
 
-    public void AdicionarInstrumento(Instrumento instr, int quantidadePrevista = 1)
+    // Cancelamento: só antes de começar (depois de iniciado, os instrumentos
+    // já entraram em campo e precisam ser contados e finalizados).
+    public void Cancelar(string motivo)
     {
-        Itens.Add(new ItemProcedimento
-        {
-            Instrumento = instr,
-            QuantidadePrevista = quantidadePrevista
-        });
+        if (Status != StatusProcedimento.Planejado)
+            throw new RegraDeNegocioException("Só é possível cancelar um procedimento planejado.");
+        if (string.IsNullOrWhiteSpace(motivo))
+            throw new RegraDeNegocioException("Informe o motivo do cancelamento.");
+
+        Observacoes = $"{Observacoes}\n[Cancelamento] {motivo.Trim()}".Trim();
+        Status = StatusProcedimento.Cancelado;
     }
 
-    // A contagem passa pelo Procedimento porque só ele conhece o próprio status:
-    // procedimento que não está em andamento não aceita alteração de contagem.
+    // ===================== Itens e contagens =====================
+
+    // Os itens nascem dentro do procedimento (composição) e só antes do início,
+    // para que a contagem inicial cubra todos os instrumentos previstos.
+    public ItemProcedimento AdicionarInstrumento(Instrumento instrumento, int quantidadePrevista = 1)
+    {
+        if (Status != StatusProcedimento.Planejado)
+            throw new RegraDeNegocioException("Só é possível adicionar instrumentos a um procedimento planejado.");
+        if (quantidadePrevista <= 0)
+            throw new RegraDeNegocioException("A quantidade prevista deve ser maior que zero.");
+
+        var item = new ItemProcedimento(instrumento, quantidadePrevista);
+        _itens.Add(item);
+        return item;
+    }
+
+    // RN5: contagens só com procedimento EmAndamento e quantidade válida
+    // (entrada > 0; saída >= 0, pois zero significa "nenhuma unidade voltou").
     public void RegistrarEntrada(Guid itemId, int quantidade)
     {
         GarantirContagemPermitida();
@@ -78,11 +117,13 @@ public class Procedimento
         GarantirContagemPermitida();
         if (quantidade < 0)
             throw new RegraDeNegocioException("A quantidade de saída não pode ser negativa.");
+        if (pesoMedido < 0)
+            throw new RegraDeNegocioException("O peso medido não pode ser negativo.");
 
         var item = ObterItem(itemId);
         item.RegistrarSaida(quantidade);
-        item.PesoMedido = pesoMedido;
-        item.IdentificadoPorCamera = identificadoPorCamera;
+        item.RegistrarPeso(pesoMedido);
+        item.RegistrarIdentificacaoPorCamera(identificadoPorCamera);
     }
 
     public void RegistrarPeso(Guid itemId, decimal pesoMedido)
@@ -91,7 +132,7 @@ public class Procedimento
         if (pesoMedido < 0)
             throw new RegraDeNegocioException("O peso medido não pode ser negativo.");
 
-        ObterItem(itemId).PesoMedido = pesoMedido;
+        ObterItem(itemId).RegistrarPeso(pesoMedido);
     }
 
     private void GarantirContagemPermitida()
@@ -102,15 +143,16 @@ public class Procedimento
 
     private ItemProcedimento ObterItem(Guid itemId)
     {
-        return Itens.FirstOrDefault(i => i.Id == itemId)
+        return _itens.FirstOrDefault(i => i.Id == itemId)
             ?? throw new KeyNotFoundException("Item não encontrado no procedimento.");
     }
 
+    // ===================== Consultas =====================
+
+    // RN4 (via ItemProcedimento.ConferePeso): item com peso fora da tolerância é divergente.
     public List<ItemProcedimento> ObterDiferencas()
     {
-        return Itens
-            .Where(i => i.CalcularDiferenca() != 0 || !i.ConferePeso())
-            .ToList();
+        return _itens.Where(i => i.PossuiDivergencia()).ToList();
     }
 
     public Relatorio GerarRelatorio()
@@ -118,7 +160,7 @@ public class Procedimento
         return new Relatorio
         {
             Procedimento = this,
-            TotalInstrumentos = Itens.Sum(i => i.QuantidadeInicial),
+            TotalInstrumentos = _itens.Sum(i => i.QuantidadeInicial),
             Divergencia = ObterDiferencas().Count > 0
         };
     }

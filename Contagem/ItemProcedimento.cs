@@ -2,27 +2,50 @@ using ScanOPS.Instrumentos;
 
 namespace ScanOPS.Contagens;
 
+/// <summary>
+/// Item contado dentro de um Procedimento (parte do agregado Procedimento).
+/// Só pode ser criado e alterado pelo próprio Procedimento: construtor, setters
+/// e métodos de alteração são internal. Leitura continua pública.
+/// </summary>
 public class ItemProcedimento
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Instrumento Instrumento { get; set; } = null!;
-    public int QuantidadePrevista { get; set; }
+    public const decimal ToleranciaPesoPadrao = 2m;
+
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Instrumento Instrumento { get; private set; }
+    public int QuantidadePrevista { get; private set; }
     public int QuantidadeInicial { get; private set; }
     public int QuantidadeFinal { get; private set; }
     public int Diferenca => CalcularDiferenca();
-    public decimal PesoMedido { get; set; }
-    public bool IdentificadoPorCamera { get; set; }
-    public decimal ToleranciaPeso { get; set; } = 2m;
+    public decimal PesoMedido { get; private set; }
+    public bool IdentificadoPorCamera { get; private set; }
+    public decimal ToleranciaPeso { get; private set; } = ToleranciaPesoPadrao;
     public StatusItem Status { get; private set; } = StatusItem.Pendente;
 
-    public void RegistrarEntrada(int qtd)
+    internal ItemProcedimento(Instrumento instrumento, int quantidadePrevista)
+    {
+        Instrumento = instrumento;
+        QuantidadePrevista = quantidadePrevista;
+    }
+
+    internal void RegistrarEntrada(int qtd)
     {
         QuantidadeInicial += qtd;
     }
 
-    public void RegistrarSaida(int qtd)
+    internal void RegistrarSaida(int qtd)
     {
         QuantidadeFinal += qtd;
+    }
+
+    internal void RegistrarPeso(decimal peso)
+    {
+        PesoMedido = peso;
+    }
+
+    internal void RegistrarIdentificacaoPorCamera(bool identificado)
+    {
+        IdentificadoPorCamera = identificado;
     }
 
     public int CalcularDiferenca()
@@ -30,15 +53,20 @@ public class ItemProcedimento
         return QuantidadeInicial - QuantidadeFinal;
     }
 
+    // RN4: o peso medido precisa bater com o peso de referência esperado, dentro da tolerância.
     public bool ConferePeso()
     {
         decimal esperado = Instrumento.PesoReferencia * QuantidadeInicial;
         return Math.Abs(PesoMedido - esperado) <= ToleranciaPeso;
     }
 
-    public void Conferir()
+    public bool PossuiDivergencia()
     {
-        bool tudoOk = CalcularDiferenca() == 0 && ConferePeso();
-        Status = tudoOk ? StatusItem.Conferido : StatusItem.Divergente;
+        return CalcularDiferenca() != 0 || !ConferePeso();
+    }
+
+    internal void Conferir()
+    {
+        Status = PossuiDivergencia() ? StatusItem.Divergente : StatusItem.Conferido;
     }
 }

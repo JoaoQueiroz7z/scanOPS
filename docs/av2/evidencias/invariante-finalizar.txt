@@ -1,0 +1,30 @@
+# Evidência: Finalizar recusado não pode deixar estado parcial (itens A06 e F02)
+#
+# Problema encontrado na leitura do código (versão da main a355b33, Cirurgias/Procedimento.cs):
+#   Finalizar() chamava item.Conferir() em TODOS os itens e só DEPOIS verificava se havia
+#   divergência sem justificativa. Quando recusava, os itens já tinham mudado de Pendente
+#   para Divergente/Conferido: o objeto ficava num estado intermediário inconsistente.
+#
+# Correção (passo 4): todas as validações acontecem antes de qualquer alteração;
+#   só depois de validado o procedimento confere os itens e muda o Status.
+#
+# Verificação de que o teste detecta o problema: a ordem antiga foi recolocada
+# TEMPORARIAMENTE (uma linha "foreach (var x in _itens) x.Conferir();" antes da validação),
+# o teste foi executado e o arquivo foi restaurado em seguida. Saída obtida:
+
+  Com falha ScanOPS.Tests.Regras.InvarianteProcedimentoTests.FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado
+   Assert.All() Failure: 2 out of 2 items in the collection did not pass.
+   [0] (pinça, diferença 1)   Expected: Pendente   Actual: Divergente
+   [1] (tesoura, diferença 0) Expected: Pendente   Actual: Conferido
+Com falha! – Com falha: 1, Aprovado: 0, Total: 1
+
+# Com a correção aplicada (código atual):
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico(propriedade: "IdentificadoPorCamera")
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico(propriedade: "Status")
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico(propriedade: "PesoMedido")
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico(propriedade: "QuantidadeFinal")
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_PropriedadesDeContagemNaoTemSetterPublico(propriedade: "QuantidadeInicial")
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.Procedimento_StatusEItensNaoPodemSerAlteradosDeFora
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ItemProcedimento_MetodosDeAlteracaoEConstrutorNaoSaoPublicos
+  Aprovado ScanOPS.Tests.Regras.InvarianteProcedimentoTests.ProcedimentoFinalizado_RecusaTodaAlteracaoEPermaneceIntacto
