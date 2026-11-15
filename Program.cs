@@ -151,22 +151,36 @@ app.MapGet("/api/procedimento-atual", () => new
 
 app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequest dados) =>
 {
-    var item = procedimentoAtivo.Itens.FirstOrDefault(i => i.Id == itemId);
-    if (item is null) return Results.NotFound();
-
-    item.RegistrarEntrada(dados.Quantidade);
-    return Results.Ok();
+    try
+    {
+        procedimentoAtivo.RegistrarEntrada(itemId, dados.Quantidade);
+        return Results.Ok();
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { erro = ex.Message });
+    }
 });
 
 app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequest dados) =>
 {
-    var item = procedimentoAtivo.Itens.FirstOrDefault(i => i.Id == itemId);
-    if (item is null) return Results.NotFound();
-
-    item.RegistrarSaida(dados.Quantidade);
-    item.PesoMedido = dados.PesoMedido;
-    item.IdentificadoPorCamera = dados.IdentificadoPorCamera;
-    return Results.Ok();
+    try
+    {
+        procedimentoAtivo.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
+        return Results.Ok();
+    }
+    catch (KeyNotFoundException)
+    {
+        return Results.NotFound();
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { erro = ex.Message });
+    }
 });
 
 app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequest dados) =>
@@ -190,3 +204,5 @@ record LoginRequest(string Email, string Senha);
 record EntradaRequest(int Quantidade);
 record SaidaRequest(int Quantidade, decimal PesoMedido, bool IdentificadoPorCamera);
 record FinalizarRequest(string? Justificativa);
+// Torna a classe Program visível para os testes de integração (WebApplicationFactory).
+public partial class Program { }

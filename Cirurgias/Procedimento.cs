@@ -61,6 +61,41 @@ public class Procedimento
         });
     }
 
+    // A contagem passa pelo Procedimento porque só ele conhece o próprio status:
+    // procedimento que não está em andamento não aceita alteração de contagem.
+    public void RegistrarEntrada(Guid itemId, int quantidade)
+    {
+        GarantirContagemPermitida();
+        if (quantidade <= 0)
+            throw new InvalidOperationException("A quantidade de entrada deve ser maior que zero.");
+
+        ObterItem(itemId).RegistrarEntrada(quantidade);
+    }
+
+    public void RegistrarSaida(Guid itemId, int quantidade, decimal pesoMedido, bool identificadoPorCamera)
+    {
+        GarantirContagemPermitida();
+        if (quantidade < 0)
+            throw new InvalidOperationException("A quantidade de saída não pode ser negativa.");
+
+        var item = ObterItem(itemId);
+        item.RegistrarSaida(quantidade);
+        item.PesoMedido = pesoMedido;
+        item.IdentificadoPorCamera = identificadoPorCamera;
+    }
+
+    private void GarantirContagemPermitida()
+    {
+        if (Status != StatusProcedimento.EmAndamento)
+            throw new InvalidOperationException("Só é possível registrar contagem em procedimento em andamento.");
+    }
+
+    private ItemProcedimento ObterItem(Guid itemId)
+    {
+        return Itens.FirstOrDefault(i => i.Id == itemId)
+            ?? throw new KeyNotFoundException("Item não encontrado no procedimento.");
+    }
+
     public List<ItemProcedimento> ObterDiferencas()
     {
         return Itens

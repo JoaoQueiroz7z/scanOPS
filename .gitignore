@@ -1,0 +1,12 @@
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# saídas de teste e banco local
+TestResults/
+*.db
+*.db-shm
+*.db-wal
+node_modules/

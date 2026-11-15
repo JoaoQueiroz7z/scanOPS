@@ -1,0 +1,11 @@
+# Reprodução executada em 2026-11-14 20:58:56
+## 1) Estado inicial (procedimento em andamento)
+{"id":"eaf26923-71e1-4b47-90bc-93d4a6ae3a8d","tipo":"Apendicectomia","status":"EmAndamento","itens":[{"id":"be3e1471-e546-4ba1-8f04-9ae64bcb6808","instrumento":"Pinça Kelly","quantidadePrevista":2,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0,"identificadoPorCamera":false,"status":"Pendente"},{"id":"c9db697f-92df-497f-8024-61a7a38b01a5","instrumento":"Tesoura Mayo","quantidadePrevista":1,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0,"identificadoPorCamera":false,"status":"Pendente"}]}
+## 2) Finalizar o procedimento (sem divergência)
+{"status":"Finalizado"}  -> HTTP 200
+## 3) Registrar entrada de 3 unidades DEPOIS de finalizado (esperado: recusar com HTTP 400)
+{"erro":"Só é possível registrar contagem em procedimento em andamento."}  -> HTTP 400
+## 4) Registrar entrada de -5 unidades (esperado: recusar com HTTP 400)
+{"erro":"Só é possível registrar contagem em procedimento em andamento."}  -> HTTP 400
+## 5) Estado final
+{"id":"eaf26923-71e1-4b47-90bc-93d4a6ae3a8d","tipo":"Apendicectomia","status":"Finalizado","itens":[{"id":"be3e1471-e546-4ba1-8f04-9ae64bcb6808","instrumento":"Pinça Kelly","quantidadePrevista":2,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0,"identificadoPorCamera":false,"status":"Conferido"},{"id":"c9db697f-92df-497f-8024-61a7a38b01a5","instrumento":"Tesoura Mayo","quantidadePrevista":1,"quantidadeInicial":0,"quantidadeFinal":0,"diferenca":0,"pesoMedido":0,"identificadoPorCamera":false,"status":"Conferido"}]}
