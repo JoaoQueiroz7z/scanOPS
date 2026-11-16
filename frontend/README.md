@@ -1,16 +1,26 @@
-# React + Vite
+# scanOPS · front-end (React + Vite, JavaScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Rodar
+Terminal 1 (back): `dotnet run --urls http://localhost:5000`
+Terminal 2 (front):
+```
+cd frontend            # coloque esta pasta como "frontend" do repositório
+npm install
+cp .env.example .env   # Windows: copy .env.example .env
+npm run dev            # http://localhost:5173
+```
+Login de teste (README do projeto): medico@scanops.com / 123456
 
-Currently, two official plugins are available:
+## Telas e rotas usadas
+| Tela | Rotas do back |
+|---|---|
+| Login | POST /api/login |
+| Instrumentos / Pacientes (CRUD) | GET/POST/PUT/DELETE /api/instrumentos e /api/pacientes |
+| Novo procedimento | POST /api/procedimentos |
+| Procedimento atual | GET /api/procedimento-atual, POST /api/procedimentos/{id}/iniciar e /cancelar |
+| Operação | POST /api/procedimento-atual/itens/{id}/entrada, /saida, /pesar e /finalizar |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Ajustes necessários (não deu para ver os DTOs do back)
+- `src/mapeadores.js`: nomes dos campos da resposta de procedimento/itens (use "Ver JSON bruto" na tela de operação).
+- `src/pages/Cadastros.jsx`: `CAMPOS_INSTRUMENTO` e `CAMPOS_PACIENTE` (chaves dos DTOs).
+- Sugestão pro back: criar `GET /api/usuarios` (escolher cirurgião/instrumentista) e `GET /api/procedimentos` (histórico).
