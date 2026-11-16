@@ -102,6 +102,7 @@ Resumo (diagrama completo, com atributos, métodos, multiplicidades e invariante
 | RN3 | Divergência exige justificativa para finalizar | `Procedimento.Finalizar` |
 | RN4 | Peso medido = referência × quantidade inicial, tolerância ±2 g | `ItemProcedimento.ConferePeso` |
 | RN5 | Contagem só `EmAndamento`; entrada > 0, saída ≥ 0, peso ≥ 0 | `Procedimento.RegistrarEntrada/Saida/Peso` |
+| RN6 | Instrumento inativo não entra em procedimento novo | `Procedimento.AdicionarInstrumento` |
 
 Critérios de aceitação e testes de cada regra: [`av2/especificacao.md`](av2/especificacao.md) e
 [`av2/rastreabilidade.md`](av2/rastreabilidade.md).
@@ -126,6 +127,8 @@ Todas as rotas recebem e devolvem DTOs (`Api/Dtos/`); erros saem como `{ "erro":
 | POST | `/api/login` | Autentica por e-mail e senha (401 se inválido) |
 | GET/POST | `/api/instrumentos` | Lista / cadastra |
 | GET/PUT/DELETE | `/api/instrumentos/{id}` | Detalhe / edita / exclui (400 se usado em procedimento) |
+| POST | `/api/instrumentos/{id}/inativar` | Tira o instrumento de uso (`Instrumento.Inativar`) |
+| POST | `/api/instrumentos/{id}/reativar` | Devolve o instrumento ao uso (`Instrumento.Reativar`) |
 | GET/POST | `/api/pacientes` | Lista / cadastra |
 | GET/PUT/DELETE | `/api/pacientes/{id}` | Detalhe / edita / exclui (400 se tem procedimento) |
 | POST | `/api/procedimentos` | Planeja um procedimento (`Planejado`) |
@@ -151,8 +154,8 @@ As rotas **não** exigem usuário autenticado (ver ADR-008).
 | Login | `src/pages/Login.jsx` | Entrar com e-mail e senha | `POST /api/login` |
 | Procedimento atual | `src/pages/Atual.jsx` | Dados, itens e status; iniciar ou cancelar (só planejado) | `GET /api/procedimento-atual`, `/iniciar`, `/cancelar` |
 | Novo procedimento | `src/pages/NovoProcedimento.jsx` | Planejar com paciente e instrumentos previstos; "Iniciar agora" | `POST /api/procedimentos`, `/iniciar` |
-| Operação | `src/pages/Operacao.jsx` | Entrada, saída com peso obrigatório, pesagem pela balança e finalização com justificativa | `/entrada`, `/saida`, `/pesar`, `/finalizar` |
-| Instrumentos / Pacientes | `src/pages/Cadastros.jsx` | Listar, cadastrar, editar e excluir | `/api/instrumentos`, `/api/pacientes` |
+| Operação | `src/pages/Operacao.jsx` | Entrada, saída com peso obrigatório, pesagem pela balança, peso gravado × esperado e divergência por item, finalização com justificativa | `/entrada`, `/saida`, `/pesar`, `/finalizar` |
+| Instrumentos / Pacientes | `src/pages/Cadastros.jsx` | Listar, cadastrar, editar e excluir; inativar/reativar instrumento; sexo e tipo sanguíneo em listas | `/api/instrumentos` (+ `/inativar`, `/reativar`), `/api/pacientes` |
 
 - Todas as chamadas HTTP ficam em `src/api.js`; a conversão das respostas (DTOs) fica em `src/mapeadores.js`.
 - Erros do back (`{ "erro": "..." }`) aparecem na tela.

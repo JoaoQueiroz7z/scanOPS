@@ -87,7 +87,7 @@ Evidências: `reproducao-antes-da-correcao.txt` × `reproducao-depois-da-correca
 execução das duas versões em `revisao-verificacao.txt`.
 
 **Não regressão:** os testes de reprodução continuam na suíte e rodam em todo `dotnet test`
-(hoje, 87 testes). Foram acrescentados testes de domínio da mesma regra
+(hoje, 103 testes). Foram acrescentados testes de domínio da mesma regra
 (`ProcedimentoContagemTests.cs`) e, depois da persistência, a verificação no banco
 (`ContagemAposFinalizar_ERecusadaEOBancoContinuaComOsValoresFinais`).
 

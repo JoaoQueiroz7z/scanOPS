@@ -53,12 +53,18 @@ Qualquer outra transição é recusada com `RegraDeNegocioException` e o objeto 
 | **RN3** | Se houver **divergência** em algum item, a finalização exige uma **justificativa** não vazia, que fica registrada em `Observacoes`. | `Procedimento.Finalizar()` |
 | **RN4** | O **peso medido** de um item deve ser igual a `PesoReferencia × QuantidadeInicial`, com tolerância de **±2 g**; fora disso o item é divergente. | `ItemProcedimento.ConferePeso()` / `PossuiDivergencia()` |
 | **RN5** | Contagens (entrada, saída, peso) só são aceitas com o procedimento `EmAndamento` e com valores válidos: entrada **> 0**; saída **≥ 0** (zero = nenhuma unidade voltou); peso **≥ 0**. | `Procedimento.RegistrarEntrada/RegistrarSaida/RegistrarPeso` |
+| **RN6** | Instrumento **inativo** não pode ser adicionado a um procedimento novo. | `Procedimento.AdicionarInstrumento()` |
 
 Regras complementares (também implementadas e testadas):
 
 - Itens só podem ser adicionados enquanto o procedimento está `Planejado`, com quantidade prevista > 0.
 - Cancelamento só a partir de `Planejado` e com motivo (depois de iniciado, os instrumentos já estão em campo e precisam ser contados).
-- Instrumento ou paciente já usado em um procedimento não pode ser excluído.
+- Instrumento ou paciente já usado em um procedimento não pode ser excluído (o instrumento pode ser inativado: `POST /api/instrumentos/{id}/inativar`, e reativado: `/reativar`).
+- Sexo do paciente: `Masculino`, `Feminino` ou `Não informado`; tipo sanguíneo: `A+`, `A-`, `B+`, `B-`, `AB+`, `AB-`, `O+`, `O-` ou `Não informado`. Vazio vira `Não informado`; outro valor é recusado (HTTP 400).
+
+Durante a operação, cada item da resposta da API traz o peso esperado e se o peso e a contagem conferem
+(`pesoEsperado`, `pesoConfere`, `possuiDivergencia`), calculados pelo domínio, para a tela mostrar a
+divergência antes da finalização. O `status` do item só muda para `Conferido`/`Divergente` ao finalizar.
 
 ## 5. Fluxos
 
@@ -68,7 +74,7 @@ nada é gravado e a API responde com o código definido em [tratamento-de-falhas
 
 ### F1 — Planejar, iniciar e fazer a contagem inicial
 
-1. `POST /api/procedimentos` cria o procedimento `Planejado` com paciente, equipe e instrumentos previstos.
+1. `POST /api/procedimentos` cria o procedimento `Planejado` com paciente, equipe e instrumentos previstos (só instrumentos ativos, RN6).
 2. `POST /api/procedimentos/{id}/iniciar` inicia (RN1). A partir daí ele é o **procedimento atual**
    (`GET /api/procedimento-atual` devolve o de início mais recente).
 3. `POST /api/procedimento-atual/itens/{itemId}/entrada` registra as unidades que entraram em campo (RN5).
@@ -118,6 +124,12 @@ Cada critério corresponde a pelo menos um teste automatizado (nome entre parên
 - **CA-RN5.2** Dado um procedimento `Finalizado`, quando se registra entrada, saída ou peso, então é recusado (HTTP 400) e a contagem gravada não muda. (`ProcedimentoFinalizado_RecusaTodaAlteracaoEPermaneceIntacto`, `RegistrarEntrada_DepoisDeFinalizado_RetornaBadRequestENaoAlteraContagem`, `ContagemAposFinalizar_ERecusadaEOBancoContinuaComOsValoresFinais`)
 - **CA-RN5.3** Dado um procedimento `Planejado`, quando se registra entrada, então é recusado. (`RN5_Violacao_EntradaComProcedimentoPlanejado_Lanca`)
 - **CA-RN5.4** Quando a entrada é 0 ou negativa, ou a saída/peso é negativo, então é recusado e nada muda; saída 0 é aceita. (`RegistrarEntrada_QuantidadeMenorOuIgualAZero_LancaExcecaoENaoAlteraContagem`, `RN5_Violacao_PesoNegativoNaSaida_LancaENaoAlteraNada`, `RegistrarSaida_QuantidadeZero_EhAceita`)
+
+### RN6 — instrumento inativo não entra em procedimento novo
+- **CA-RN6.1** Dado um instrumento ativo, quando é adicionado a um procedimento planejado, então vira um item do procedimento. (`RN6_Sucesso_InstrumentoAtivo_EhAdicionado`)
+- **CA-RN6.2** Dado um instrumento inativo, quando se tenta adicioná-lo, então é recusado com mensagem que menciona "inativo" e a lista de itens não muda. (`RN6_Violacao_InstrumentoInativo_LancaENaoAlteraLista`)
+- **CA-RN6.3** Dado um instrumento inativado e depois reativado, quando é adicionado, então é aceito. (`RN6_Sucesso_InstrumentoReativado_VoltaASerAceito`)
+- **CA-RN6.4** Pela API: planejar com instrumento inativo responde 400 e nenhum procedimento é gravado; depois de reativar, o mesmo pedido responde 201. (`RN6_PlanejarComInstrumentoInativo_Retorna400ENadaEGravado_EReativadoFunciona`)
 
 ### Fluxos ponta a ponta
 - **CA-F1** Dado o banco de demonstração, quando se planeja um procedimento com 3 pinças e 1 tesoura e ele é iniciado, então fica gravado `EmAndamento` e passa a ser o procedimento atual. (`Planejar_CriaProcedimentoPlanejadoComOsItensPrevistos`, `RN1_Iniciar_ProcedimentoPlanejado_FicaEmAndamentoGravadoEViraOProcedimentoAtual`)

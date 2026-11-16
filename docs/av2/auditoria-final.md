@@ -1,7 +1,7 @@
 # Auditoria final
 
 Correspondência entre os critérios da AV2, a implementação, os testes e os resultados. Feita sobre a
-versão desta branch; os testes foram executados com `dotnet test` (**87 aprovados, 0 falhas**) e o
+versão desta branch; os testes foram executados com `dotnet test` (**103 aprovados, 0 falhas**) e o
 build com `dotnet build` (0 erros, 0 avisos). Índice das evidências por critério:
 [evidencias.json](evidencias.json).
 
@@ -14,7 +14,7 @@ Legenda: **Atendido** = existe implementação e evidência verificável no repo
 |---|---|---|
 | A01 Cinco classes de domínio | Atendido | `Procedimento`, `ItemProcedimento`, `Instrumento`, `Paciente`, `Usuario`, `Relatorio` |
 | A02 Comportamento próprio em 2+ classes | Atendido | `Procedimento.Finalizar`, `ItemProcedimento.ConferePeso`, `Usuario.Autenticar`, `Paciente.GetIdade` |
-| A03 Cinco regras implementadas e usadas | Atendido | RN1–RN5 em `Procedimento`/`ItemProcedimento`, chamadas pelas rotas de `Program.cs` |
+| A03 Cinco regras implementadas e usadas | Atendido | RN1–RN6 em `Procedimento`/`ItemProcedimento`, chamadas pelas rotas de `Program.cs` |
 | A04 Colaboração entre classes | Atendido | F2/F3: `ServicoDePesagem` → `IBalanca` → `Procedimento` → `ItemProcedimento` → `Instrumento.PesoReferencia` |
 | A05 Objeto com 3+ estados e transições | Atendido | `StatusProcedimento` (4 estados); `Identidade_TransicoesPreservamOMesmoId` |
 | A06 Transição proibida rejeitada sem inconsistência | Atendido | `FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado`, `FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco`; `evidencias/invariante-finalizar.txt` |
@@ -28,7 +28,7 @@ Legenda: **Atendido** = existe implementação e evidência verificável no repo
 | F01 Sucesso e violação por regra (≥10) | Atendido | `Regras/RegrasDeNegocioTests.cs` e [rastreabilidade.md](rastreabilidade.md) |
 | F02 Teste que tenta violar invariante | Atendido | `Regras/InvarianteProcedimentoTests.cs` |
 | F03 Integração API → regra → persistência | Atendido | `Api/PersistenciaIntegracaoTests.cs`, `Api/CicloDeVidaProcedimentoApiTests.cs` |
-| F04 Compila e testa a partir de clone limpo | Atendido | instruções no `README.md`; verificado numa cópia só com os arquivos versionados: build sem erros, 87 testes aprovados e front compilado com `npm install` e `npm run build`; API e login verificados no ar |
+| F04 Compila e testa a partir de clone limpo | Atendido | instruções no `README.md`; verificado numa cópia só com os arquivos versionados: build sem erros, 103 testes aprovados e front compilado com `npm install` e `npm run build`; API e login verificados no ar |
 | F05 Rastreabilidade | Atendido | [rastreabilidade.md](rastreabilidade.md) |
 | F06 Auditoria final | Atendido | este documento |
 | G01 Especificação verificável | Atendido | [especificacao.md](especificacao.md) |
