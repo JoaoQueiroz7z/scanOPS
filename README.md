@@ -114,7 +114,8 @@ Também é possível trocar sem editar o arquivo: `$env:Balanca__Tipo = "ComRuid
 - [x] Classes do modelo (Procedimento, ItemProcedimento, Instrumento, Paciente, Usuario, Relatorio)
 - [x] Conferência de contagens e de peso (no domínio)
 - [x] API com rotas de login, instrumentos, pacientes, planejamento/início/cancelamento de procedimentos e contagem
-- [x] Front-end React com as telas principais (a tela Novo Procedimento ainda não usa as rotas de planejamento)
+- [x] Front-end React com as telas: login, procedimento atual, novo procedimento (planejar e iniciar), operação (contagem, pesagem e finalização) e cadastros de instrumentos e pacientes
+- [ ] Tela de relatório final
 - [x] Balança simulada: duas implementações (`BalancaSimulada` e `BalancaComRuido`, escolhida por configuração)
 - [x] Tratamento central de erros na API (regra de negócio → 400, equipamento indisponível → 503)
 - [x] Testes automatizados (xUnit) em `tests/ScanOPS.Tests`: domínio, exceções e integração com a API
