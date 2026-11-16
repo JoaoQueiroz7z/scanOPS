@@ -2,6 +2,15 @@ namespace ScanOPS.Pessoas;
 
 public class Paciente
 {
+    public const string NaoInformado = "Não informado";
+
+    /// <summary>Valores aceitos para Sexo (a API recusa qualquer outro).</summary>
+    public static readonly IReadOnlyList<string> SexosValidos = ["Masculino", "Feminino", NaoInformado];
+
+    /// <summary>Valores aceitos para TipoSanguineo. Negativos com hífen comum: "A-" (a tela mostra "A−").</summary>
+    public static readonly IReadOnlyList<string> TiposSanguineosValidos =
+        ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", NaoInformado];
+
     public Guid Id { get; set; } = Guid.NewGuid();
     public string Nome { get; set; } = "";
     // Opcional: o paciente pode ser cadastrado antes de a data ser informada.

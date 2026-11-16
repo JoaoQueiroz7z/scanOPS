@@ -87,7 +87,7 @@ public class ContratoApiTests
 
         var resposta = await api.CreateClient().PostAsJsonAsync("/api/pacientes", new
         {
-            nome = "Maria", dataNascimento = "", sexo = "F", tipoSanguineo = "O+", alergias = "", observacoes = ""
+            nome = "Maria", dataNascimento = "", sexo = "Feminino", tipoSanguineo = "O+", alergias = "", observacoes = ""
         });
 
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
@@ -104,7 +104,7 @@ public class ContratoApiTests
 
         var resposta = await api.CreateClient().PostAsJsonAsync("/api/pacientes", new
         {
-            nome = "João", dataNascimento = nascimento.ToString("yyyy-MM-dd"), sexo = "M", tipoSanguineo = "A+", alergias = "", observacoes = ""
+            nome = "João", dataNascimento = nascimento.ToString("yyyy-MM-dd"), sexo = "Masculino", tipoSanguineo = "A+", alergias = "", observacoes = ""
         });
 
         var criado = await resposta.Content.ReadFromJsonAsync<JsonElement>();
@@ -119,12 +119,91 @@ public class ContratoApiTests
 
         var resposta = await api.CreateClient().PostAsJsonAsync("/api/pacientes", new
         {
-            nome = "Ana", dataNascimento = "31/02/1990", sexo = "F", tipoSanguineo = "", alergias = "", observacoes = ""
+            nome = "Ana", dataNascimento = "31/02/1990", sexo = "Feminino", tipoSanguineo = "", alergias = "", observacoes = ""
         });
 
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         var erro = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
         Assert.Contains("Data de nascimento inválida", erro);
+    }
+
+    // ---------- Pacientes: sexo e tipo sanguíneo só aceitam valores da lista ----------
+
+    private static Task<HttpResponseMessage> CriarPacienteAsync(HttpClient cliente, string? sexo, string? tipoSanguineo) =>
+        cliente.PostAsJsonAsync("/api/pacientes", new
+        {
+            nome = "Carla", dataNascimento = "", sexo, tipoSanguineo, alergias = "", observacoes = ""
+        });
+
+    [Fact]
+    public async Task Paciente_ValoresDaLista_SaoGravadosNaFormaPadrao()
+    {
+        using var api = new ApiDeTeste();
+
+        // minúsculas e o sinal de menos (−) também são aceitos e gravados como na lista
+        var resposta = await CriarPacienteAsync(api.CreateClient(), "feminino", "ab−");
+
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        var criado = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Feminino", criado.GetProperty("sexo").GetString());
+        Assert.Equal("AB-", criado.GetProperty("tipoSanguineo").GetString());
+    }
+
+    [Fact]
+    public async Task Paciente_SexoETipoVazios_ViramNaoInformado()
+    {
+        using var api = new ApiDeTeste();
+
+        var resposta = await CriarPacienteAsync(api.CreateClient(), "", null);
+
+        var criado = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("Não informado", criado.GetProperty("sexo").GetString());
+        Assert.Equal("Não informado", criado.GetProperty("tipoSanguineo").GetString());
+    }
+
+    [Fact]
+    public async Task Paciente_SexoForaDaLista_Retorna400ListandoAsOpcoes()
+    {
+        using var api = new ApiDeTeste();
+
+        var resposta = await CriarPacienteAsync(api.CreateClient(), "F", "O+");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var erro = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
+        Assert.Contains("Sexo inválido", erro);
+        Assert.Contains("Masculino, Feminino, Não informado", erro);
+    }
+
+    [Fact]
+    public async Task Paciente_TipoSanguineoForaDaLista_Retorna400ListandoAsOpcoes()
+    {
+        using var api = new ApiDeTeste();
+
+        var resposta = await CriarPacienteAsync(api.CreateClient(), "Masculino", "Z+");
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var erro = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
+        Assert.Contains("Tipo sanguíneo inválido", erro);
+        Assert.Contains("AB-", erro);
+    }
+
+    [Fact]
+    public async Task Paciente_EdicaoComValorInvalido_Retorna400ENaoAlteraNada()
+    {
+        using var api = new ApiDeTeste();
+        var cliente = api.CreateClient();
+        var criado = await (await CriarPacienteAsync(cliente, "Feminino", "O+")).Content.ReadFromJsonAsync<JsonElement>();
+        var id = criado.GetProperty("id").GetGuid();
+
+        var resposta = await cliente.PutAsJsonAsync($"/api/pacientes/{id}", new
+        {
+            nome = "Nome Trocado", dataNascimento = "", sexo = "Feminino", tipoSanguineo = "X", alergias = "", observacoes = ""
+        });
+
+        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
+        var gravado = await cliente.GetFromJsonAsync<JsonElement>($"/api/pacientes/{id}");
+        Assert.Equal("Carla", gravado.GetProperty("nome").GetString());
+        Assert.Equal("O+", gravado.GetProperty("tipoSanguineo").GetString());
     }
 
     // ---------- Login ----------
@@ -224,7 +303,7 @@ public class ContratoApiTests
             .Content.ReadFromJsonAsync<JsonElement>();
         var paciente = await (await cliente.PostAsJsonAsync("/api/pacientes", new
         {
-            nome = "Ana Souza", dataNascimento = "", sexo = "F", tipoSanguineo = "", alergias = "", observacoes = ""
+            nome = "Ana Souza", dataNascimento = "", sexo = "Feminino", tipoSanguineo = "", alergias = "", observacoes = ""
         })).Content.ReadFromJsonAsync<JsonElement>();
         var instrumentos = await cliente.GetFromJsonAsync<JsonElement>("/api/instrumentos");
         var idUsuario = usuario.GetProperty("id").GetGuid();

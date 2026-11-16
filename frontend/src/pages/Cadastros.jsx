@@ -106,12 +106,18 @@ const CAMPOS_INSTRUMENTO = [
   { chave: 'pesoReferencia', rotulo: 'Peso de referência (g)', tipo: 'number', obrigatorio: true },
 ]
 
+// Mesmos valores de Paciente.SexosValidos e Paciente.TiposSanguineosValidos no back.
+// O valor guardado usa hífen comum ("A-"); o rótulo mostra o sinal de menos ("A−").
+const SEXOS = ['Masculino', 'Feminino', 'Não informado'].map(v => ({ valor: v, rotulo: v }))
+const TIPOS_SANGUINEOS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'Não informado']
+  .map(v => ({ valor: v, rotulo: v.replace(/-$/, '−') }))
+
 // PacienteRequisicao: nome, dataNascimento (aaaa-mm-dd ou vazio), sexo, tipoSanguineo, alergias, observacoes
 const CAMPOS_PACIENTE = [
   { chave: 'nome', rotulo: 'Nome', tipo: 'text', obrigatorio: true },
   { chave: 'dataNascimento', rotulo: 'Data de nascimento', tipo: 'date' },
-  { chave: 'sexo', rotulo: 'Sexo', tipo: 'text' },
-  { chave: 'tipoSanguineo', rotulo: 'Tipo sanguíneo', tipo: 'text' },
+  { chave: 'sexo', rotulo: 'Sexo', tipo: 'select', opcoes: SEXOS },
+  { chave: 'tipoSanguineo', rotulo: 'Tipo sanguíneo', tipo: 'select', opcoes: TIPOS_SANGUINEOS },
   { chave: 'alergias', rotulo: 'Alergias', tipo: 'text' },
   { chave: 'observacoes', rotulo: 'Observações', tipo: 'text' },
 ]
