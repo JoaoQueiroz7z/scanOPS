@@ -61,11 +61,16 @@ public class ItemProcedimento
         return QuantidadeInicial - QuantidadeFinal;
     }
 
+    /// <summary>Peso que deveria voltar: peso de referência × unidades que entraram em campo.</summary>
+    public decimal PesoEsperado()
+    {
+        return Instrumento.PesoReferencia * QuantidadeInicial;
+    }
+
     // RN4: o peso medido precisa bater com o peso de referência esperado, dentro da tolerância.
     public bool ConferePeso()
     {
-        decimal esperado = Instrumento.PesoReferencia * QuantidadeInicial;
-        return Math.Abs(PesoMedido - esperado) <= ToleranciaPeso;
+        return Math.Abs(PesoMedido - PesoEsperado()) <= ToleranciaPeso;
     }
 
     public bool PossuiDivergencia()

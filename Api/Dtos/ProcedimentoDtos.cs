@@ -29,6 +29,11 @@ public record FinalizarRequisicao(string? Justificativa);
 
 // ---------- respostas ----------
 
+/// <summary>
+/// Um item com a conferência calculada pelo domínio. Status só muda na finalização
+/// (Pendente -> Conferido/Divergente); PesoConfere e PossuiDivergencia valem a qualquer momento,
+/// para a tela mostrar a divergência antes de finalizar.
+/// </summary>
 public record ItemProcedimentoResposta(
     Guid Id,
     string Instrumento,
@@ -37,12 +42,18 @@ public record ItemProcedimentoResposta(
     int QuantidadeFinal,
     int Diferenca,
     decimal PesoMedido,
+    decimal PesoReferencia,
+    decimal PesoEsperado,
+    decimal ToleranciaPeso,
+    bool PesoConfere,
+    bool PossuiDivergencia,
     bool IdentificadoPorCamera,
     string Status)
 {
     public static ItemProcedimentoResposta De(ItemProcedimento i) => new(
         i.Id, i.Instrumento.Nome, i.QuantidadePrevista, i.QuantidadeInicial, i.QuantidadeFinal,
-        i.Diferenca, i.PesoMedido, i.IdentificadoPorCamera, i.Status.ToString());
+        i.Diferenca, i.PesoMedido, i.Instrumento.PesoReferencia, i.PesoEsperado(), i.ToleranciaPeso,
+        i.ConferePeso(), i.PossuiDivergencia(), i.IdentificadoPorCamera, i.Status.ToString());
 }
 
 /// <summary>

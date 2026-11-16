@@ -161,6 +161,45 @@ public class ContratoApiTests
         Assert.Equal(TratadorDeExcecoes.MensagemRequisicaoInvalida, erro);
     }
 
+    // ---------- Item: conferência de peso visível antes de finalizar ----------
+
+    private static async Task<JsonElement> ItemDepoisDaSaidaAsync(decimal pesoMedido)
+    {
+        using var api = new ApiDeTeste();
+        var cliente = api.CreateClient();
+        var antes = await cliente.GetFromJsonAsync<JsonElement>("/api/procedimento-atual");
+        var itemId = antes.GetProperty("itens")[0].GetProperty("id").GetGuid(); // Pinça Kelly, 50 g
+        await cliente.PostAsJsonAsync($"/api/procedimento-atual/itens/{itemId}/entrada", new { quantidade = 2 });
+        await cliente.PostAsJsonAsync($"/api/procedimento-atual/itens/{itemId}/saida", new { quantidade = 2, pesoMedido, identificadoPorCamera = true });
+        var depois = await cliente.GetFromJsonAsync<JsonElement>("/api/procedimento-atual");
+        return depois.GetProperty("itens")[0].Clone();
+    }
+
+    [Fact]
+    public async Task Item_PesoCerto_InformaPesoEsperadoEQueConfere()
+    {
+        var item = await ItemDepoisDaSaidaAsync(100m);
+
+        Assert.Equal(50m, item.GetProperty("pesoReferencia").GetDecimal());
+        Assert.Equal(100m, item.GetProperty("pesoEsperado").GetDecimal());
+        Assert.Equal(2m, item.GetProperty("toleranciaPeso").GetDecimal());
+        Assert.True(item.GetProperty("pesoConfere").GetBoolean());
+        Assert.False(item.GetProperty("possuiDivergencia").GetBoolean());
+        Assert.Equal("Pendente", item.GetProperty("status").GetString()); // só muda ao finalizar
+    }
+
+    [Fact]
+    public async Task Item_QuantidadeCertaPesoErrado_InformaDivergenciaAntesDeFinalizar()
+    {
+        var item = await ItemDepoisDaSaidaAsync(60m);
+
+        Assert.Equal(0, item.GetProperty("diferenca").GetInt32());
+        Assert.Equal(60m, item.GetProperty("pesoMedido").GetDecimal());
+        Assert.False(item.GetProperty("pesoConfere").GetBoolean());
+        Assert.True(item.GetProperty("possuiDivergencia").GetBoolean());
+        Assert.Equal("Pendente", item.GetProperty("status").GetString());
+    }
+
     // ---------- Procedimento: dados para a tela ----------
 
     [Fact]
