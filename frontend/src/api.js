@@ -13,9 +13,11 @@ async function http(path, { method = 'GET', body } = {}) {
     throw new ApiError(`Não foi possível conectar à API em ${BASE}. Ela está rodando?`, 0)
   }
   const texto = await res.text()
-  const dados = texto ? JSON.parse(texto) : null
-  // O back responde erros como ProblemDetails (campo "detail" traz a mensagem das regras de negócio).
-  if (!res.ok) throw new ApiError(dados?.detail || dados?.title || `Erro ${res.status}`, res.status)
+  let dados = null
+  try { dados = texto ? JSON.parse(texto) : null } catch { dados = null } // resposta que não é JSON
+  // O back responde erros como { "erro": "mensagem" } (Api/TratadorDeExcecoes.cs).
+  // detail/title ficam como reserva caso algum erro venha no formato padrão do ASP.NET.
+  if (!res.ok) throw new ApiError(dados?.erro || dados?.detail || dados?.title || `Erro ${res.status}`, res.status)
   return dados
 }
 

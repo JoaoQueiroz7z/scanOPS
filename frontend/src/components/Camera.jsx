@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 
-// A câmera real é acessada pelo back-end. Se VITE_CAMERA_STREAM existir, mostramos esse stream;
-// senão usamos a webcam do navegador apenas para teste visual.
+// ATENÇÃO: este componente é só um TESTE VISUAL. A webcam do navegador não participa da conferência:
+// nenhuma imagem é enviada ao back e nada aqui identifica instrumentos. O hardware real (câmera e
+// balança) é acessado apenas pelo back-end, atrás das interfaces ICamera/IBalanca.
+// Se VITE_CAMERA_STREAM existir, mostramos esse stream; senão, a webcam do navegador.
 const STREAM = import.meta.env.VITE_CAMERA_STREAM
 
 export default function Camera() {

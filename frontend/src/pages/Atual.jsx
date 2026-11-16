@@ -47,7 +47,8 @@ export default function Atual() {
         <div className="linha acoes-base">
           {st === 'planejado' && <button className="btn primario" onClick={() => agir(() => procedimentos.iniciar(p.id))}>Iniciar procedimento</button>}
           {st === 'andamento' && <Link className="btn primario" to="/operacao">Abrir operação</Link>}
-          {(st === 'planejado' || st === 'andamento') && (
+          {/* O back só permite cancelar procedimento Planejado (Procedimento.Cancelar). */}
+          {st === 'planejado' && (
             <form className="linha" onSubmit={e => { e.preventDefault(); agir(() => procedimentos.cancelar(p.id, motivo)) }}>
               <input required placeholder="Motivo do cancelamento" value={motivo} onChange={e => setMotivo(e.target.value)} />
               <button className="btn claro">Cancelar procedimento</button>

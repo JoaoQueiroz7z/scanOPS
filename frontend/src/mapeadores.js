@@ -1,33 +1,29 @@
-// ATENÇÃO: não deu para ver os DTOs de resposta do back (Api/Dtos), então os nomes dos campos abaixo
-// são suposições. Se algo aparecer vazio na tela, abra "Ver JSON bruto" na tela de operação e ajuste aqui.
-const pick = (o, ...caminhos) => {
-  for (const c of caminhos) {
-    const v = c.split('.').reduce((a, k) => a?.[k], o)
-    if (v !== undefined && v !== null) return v
-  }
-}
+// Converte as respostas do back (Api/Dtos/ProcedimentoDtos.cs) para o formato usado nas telas.
 
+// ItemProcedimentoResposta
 export const normalizarItem = i => ({
-  id: pick(i, 'id', 'itemId'),
-  nome: pick(i, 'instrumento.nome', 'instrumentoNome', 'nome') ?? 'Instrumento',
-  previsto: pick(i, 'quantidadePrevista', 'previsto') ?? 0,
-  entrada: pick(i, 'quantidadeEntrada', 'quantidadeEmCampo', 'entradas') ?? 0,
-  saida: pick(i, 'quantidadeSaida', 'quantidadeDevolvida', 'saidas') ?? 0,
-  pesoMedido: pick(i, 'pesoMedido'),
+  id: i.id,
+  nome: i.instrumento,              // nome do instrumento (texto)
+  previsto: i.quantidadePrevista,
+  entrada: i.quantidadeInicial,     // contagem inicial: unidades que entraram em campo
+  saida: i.quantidadeFinal,         // contagem final: unidades que voltaram
+  diferenca: i.diferenca,
+  pesoMedido: i.pesoMedido,
+  identificadoPorCamera: i.identificadoPorCamera,
+  status: i.status,                 // Pendente | Conferido | Divergente
 })
 
+// ProcedimentoResposta
 export const normalizarProcedimento = r => ({
-  raw: r,
-  id: pick(r, 'id'),
-  status: String(pick(r, 'status') ?? ''),
-  tipo: pick(r, 'tipo') ?? '',
-  sala: pick(r, 'sala') ?? '',
-  descricao: pick(r, 'descricao') ?? '',
-  paciente: pick(r, 'paciente.nome', 'pacienteNome') ?? '—',
-  cirurgiao: pick(r, 'cirurgiao.nome', 'cirurgiaoNome') ?? '—',
+  id: r.id,
+  status: r.status,                 // Planejado | EmAndamento | Finalizado | Cancelado
+  tipo: r.tipo ?? '',
+  sala: r.sala ?? '',
+  paciente: r.paciente || '—',
+  cirurgiao: r.cirurgiao || '—',
   itens: (r.itens ?? []).map(normalizarItem),
 })
 
-export const statusDe = s =>
-  /cancel/i.test(s) ? 'cancelado' : /final|conclu/i.test(s) ? 'finalizado'
-  : /andamento|iniciad/i.test(s) ? 'andamento' : /planej/i.test(s) ? 'planejado' : 'outro'
+// Valores do enum StatusProcedimento do back -> classe usada nas telas
+const STATUS = { Planejado: 'planejado', EmAndamento: 'andamento', Finalizado: 'finalizado', Cancelado: 'cancelado' }
+export const statusDe = s => STATUS[s] ?? 'outro'

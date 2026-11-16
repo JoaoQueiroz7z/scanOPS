@@ -14,7 +14,8 @@ function ItemLinha({ item, executar }) {
 
   async function pesar() {
     setPesando(true)
-    await executar(async () => { const r = await procedimentos.pesar(item.id); setPeso(String(r?.peso ?? r?.pesoMedido ?? '')) }, false)
+    // PesagemResposta: { pesoMedido }. O back já grava esse peso no item.
+    await executar(async () => { const r = await procedimentos.pesar(item.id); setPeso(String(r?.pesoMedido ?? '')) }, false)
     setPesando(false)
   }
   return (
@@ -27,9 +28,10 @@ function ItemLinha({ item, executar }) {
           <input type="number" min="1" aria-label={`Quantidade de entrada de ${item.nome}`} value={qE} onChange={e => setQE(e.target.value)} />
           <button className="btn pequeno">Registrar entrada</button>
         </form>
-        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.saida(item.id, { quantidade: Number(qS), pesoMedido: peso === '' ? null : Number(peso), identificadoPorCamera: camera })) }}>
-          <input type="number" min="1" aria-label={`Quantidade de saída de ${item.nome}`} value={qS} onChange={e => setQS(e.target.value)} />
-          <input type="number" step="any" placeholder="Peso (g)" aria-label={`Peso medido de ${item.nome}`} value={peso} onChange={e => setPeso(e.target.value)} />
+        {/* RN5: saída >= 0 (zero = nenhuma unidade voltou). O peso é obrigatório: o back confere o peso (RN4). */}
+        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.saida(item.id, { quantidade: Number(qS), pesoMedido: Number(peso), identificadoPorCamera: camera })) }}>
+          <input type="number" min="0" aria-label={`Quantidade de saída de ${item.nome}`} value={qS} onChange={e => setQS(e.target.value)} />
+          <input type="number" step="any" min="0" required placeholder="Peso (g)" title="Informe o peso ou use Pesar" aria-label={`Peso medido de ${item.nome}`} value={peso} onChange={e => setPeso(e.target.value)} />
           <button type="button" className="btn pequeno claro" onClick={pesar} disabled={pesando}>{pesando ? 'Pesando…' : 'Pesar'}</button>
           <label className="check"><input type="checkbox" checked={camera} onChange={e => setCamera(e.target.checked)} />Câmera</label>
           <button className="btn pequeno">Registrar saída</button>
@@ -44,7 +46,6 @@ export default function Operacao() {
   const [p, setP] = useState(null)
   const [erro, setErro] = useState('')
   const [justificativa, setJustificativa] = useState('')
-  const [bruto, setBruto] = useState(false)
   const [final, setFinal] = useState('')
 
   const carregar = useCallback(async () => {
@@ -59,7 +60,7 @@ export default function Operacao() {
   }
   async function finalizar() {
     setErro('')
-    try { const r = await procedimentos.finalizar(justificativa || null); setFinal(r?.status ?? 'Finalizado'); await carregar() } catch (e) { setErro(e.message) }
+    try { const r = await procedimentos.finalizar(justificativa.trim() || null); setFinal(r?.status ?? 'Finalizado'); await carregar() } catch (e) { setErro(e.message) }
   }
 
   if (!p) return <div className="op"><div className="op-topo"><Link className="link claro" to="/">Voltar</Link></div>{erro ? <p className="erro pad" role="alert">{erro}</p> : <p className="pad">Carregando…</p>}</div>
@@ -95,13 +96,13 @@ export default function Operacao() {
           </div>
           {st === 'andamento' && (
             <div className="finalizar">
-              {faltando > 0 && <textarea required placeholder="Justificativa (obrigatória se houver instrumento em aberto)" value={justificativa} onChange={e => setJustificativa(e.target.value)} />}
+              {/* Sempre visível: o back (RN3) exige justificativa se houver divergência de contagem OU de peso (RN4),
+                  e a tela não tem como saber a divergência de peso antes de tentar finalizar. */}
+              <textarea aria-label="Justificativa" placeholder="Justificativa (obrigatória se houver divergência de contagem ou de peso)" value={justificativa} onChange={e => setJustificativa(e.target.value)} />
               <button className={`btn ${faltando > 0 ? 'perigo' : 'primario'}`} onClick={finalizar}>Finalizar procedimento</button>
             </div>
           )}
           {st !== 'andamento' && <p className="mudo">Procedimento {p.status}. {final && `Resultado: ${final}.`}</p>}
-          <button className="link claro" onClick={() => setBruto(!bruto)}>{bruto ? 'Esconder' : 'Ver'} JSON bruto (para ajustar mapeadores.js)</button>
-          {bruto && <pre className="bruto">{JSON.stringify(p.raw, null, 2)}</pre>}
         </main>
       </div>
     </div>

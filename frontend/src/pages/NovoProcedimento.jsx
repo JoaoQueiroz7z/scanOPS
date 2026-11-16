@@ -11,6 +11,7 @@ export default function NovoProcedimento() {
   const [f, setF] = useState({ tipo: '', sala: '', descricao: '', pacienteId: '', instrumentistaId: usuario.id ?? '' })
   const [itens, setItens] = useState([]) // [{instrumentoId, quantidadePrevista}]
   const [erro, setErro] = useState('')
+  const [criado, setCriado] = useState(null) // procedimento recém-planejado (ProcedimentoResposta)
   const set = k => e => setF({ ...f, [k]: e.target.value })
 
   useEffect(() => {
@@ -26,10 +27,32 @@ export default function NovoProcedimento() {
     if (!itens.length) return setErro('Adicione pelo menos um instrumento previsto.')
     try {
       // Não existe GET /api/usuarios no back ainda: o cirurgião é quem está logado.
-      await procedimentos.criar({ ...f, cirurgiaoId: usuario.id, itens })
-      nav('/')
+      setCriado(await procedimentos.criar({ ...f, cirurgiaoId: usuario.id, itens }))
     } catch (err) { setErro(err.message) }
   }
+
+  // O "procedimento atual" do back é o de início mais recente. Um procedimento só planejado
+  // ainda não começou, então ele é iniciado aqui mesmo, pelo id devolvido na criação.
+  async function iniciar() {
+    setErro('')
+    try { await procedimentos.iniciar(criado.id); nav('/') } catch (err) { setErro(err.message) }
+  }
+
+  if (criado) return (
+    <>
+      <header><h1>Novo procedimento</h1></header>
+      <div className="cartao vazio">
+        <h2>Procedimento planejado</h2>
+        <p>{criado.tipo} · {criado.itens.length} {criado.itens.length === 1 ? 'instrumento previsto' : 'instrumentos previstos'}.</p>
+        <p className="mudo">Ao iniciar, ele passa a ser o procedimento atual e a contagem pode começar.</p>
+        {erro && <p className="erro" role="alert">{erro}</p>}
+        <div className="linha">
+          <button className="btn primario" onClick={iniciar}>Iniciar agora</button>
+          <button className="btn claro" onClick={() => { setCriado(null); setItens([]); setF({ ...f, tipo: '', sala: '', descricao: '', pacienteId: '' }) }}>Planejar outro</button>
+        </div>
+      </div>
+    </>
+  )
 
   return (
     <>
