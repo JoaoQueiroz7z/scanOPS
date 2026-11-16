@@ -17,7 +17,7 @@ label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
 label.check{flex-direction:row;align-items:center;gap:8px;font-weight:600}label.check input{height:auto}
 
 /* Login */
-.login{min-height:100vh;display:grid;place-items:center;background:var(--bg)}
+.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(rgba(28,36,48,.80),rgba(28,36,48,.92)),url(/centro-cirurgico.jpg) center/cover no-repeat,var(--bg)}
 .login-card{width:min(380px,92vw);background:var(--painel);border-radius:24px;padding:36px;display:flex;flex-direction:column;gap:16px}
 .login-card h1{margin:0;font-size:28px}.login-card p{margin:0;color:var(--mudo)}.login-card label{color:var(--txt)}.login-card .btn{background:var(--acc);color:var(--acc-txt);justify-content:center}
 
