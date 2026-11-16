@@ -4,18 +4,39 @@ import Camera from '../components/Camera.jsx'
 import { procedimentos } from '../api.js'
 import { normalizarProcedimento, rotuloSala, statusDe } from '../mapeadores.js'
 
-function ItemLinha({ item, executar }) {
+const gramas = v => `${Number(v ?? 0).toLocaleString('pt-BR')} g`
+// Item que nunca foi pesado nem devolvido: o campo fica vazio (o peso é obrigatório na saída).
+const pesoGravadoNoCampo = item => (item.saida > 0 || item.pesoMedido > 0 ? String(item.pesoMedido) : '')
+
+// Situação do item. Antes de finalizar usa a conferência calculada pelo back (possuiDivergencia,
+// pesoConfere); depois de finalizado, mostra o status final (Conferido/Divergente).
+function Situacao({ item, finalizado }) {
+  if (finalizado) return <span className={item.status === 'Divergente' ? 'aviso' : 'ok'}>{item.status}</span>
+  if (item.entrada === 0 && item.saida === 0) return <span className="mudo">—</span>
+  if (!item.possuiDivergencia) return <span className="ok">✓ Confere</span>
+  return (
+    <span className="aviso">
+      {item.diferenca !== 0 && <>⚠ Quantidade<br /></>}
+      {!item.pesoConfere && <>⚠ Peso</>}
+    </span>
+  )
+}
+
+function ItemLinha({ item, executar, finalizado }) {
   const [qE, setQE] = useState(1)
   const [qS, setQS] = useState(1)
-  const [peso, setPeso] = useState('')
+  const [peso, setPeso] = useState(() => pesoGravadoNoCampo(item))
   const [camera, setCamera] = useState(false)
   const [pesando, setPesando] = useState(false)
   const aberto = item.entrada - item.saida
 
+  // Depois de cada operação o procedimento é recarregado: o campo passa a mostrar o peso GRAVADO no back.
+  useEffect(() => { setPeso(pesoGravadoNoCampo(item)) }, [item.pesoMedido, item.saida])
+
   async function pesar() {
     setPesando(true)
-    // PesagemResposta: { pesoMedido }. O back já grava esse peso no item.
-    await executar(async () => { const r = await procedimentos.pesar(item.id); setPeso(String(r?.pesoMedido ?? '')) }, false)
+    // PesagemResposta: { pesoMedido }. O back grava esse peso no item; mostramos o valor gravado.
+    await executar(async () => { const r = await procedimentos.pesar(item.id); setPeso(String(r?.pesoMedido ?? '')) })
     setPesando(false)
   }
   return (
@@ -23,6 +44,11 @@ function ItemLinha({ item, executar }) {
       <td><b>{item.nome}</b></td>
       <td>{item.previsto}</td><td>{item.entrada}</td><td>{item.saida}</td>
       <td className={aberto > 0 ? 'aviso' : 'ok'}>{aberto}</td>
+      <td>
+        {gramas(item.pesoMedido)}
+        <br /><span className="mudo">de {gramas(item.pesoEsperado)} esperados</span>
+      </td>
+      <td><Situacao item={item} finalizado={finalizado} /></td>
       <td>
         <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.entrada(item.id, Number(qE))) }}>
           <input type="number" min="1" aria-label={`Quantidade de entrada de ${item.nome}`} value={qE} onChange={e => setQE(e.target.value)} />
@@ -69,6 +95,15 @@ export default function Operacao() {
   const devolvidos = p.itens.reduce((s, i) => s + i.saida, 0)
   const faltando = emCampo - devolvidos
   const st = statusDe(p.status)
+  // Verde só se quantidade E peso conferem em todos os itens (o mesmo critério do back: RN3 + RN4).
+  const divergentes = p.itens.filter(i => i.possuiDivergencia)
+  const pesoDivergente = p.itens.filter(i => i.diferenca === 0 && !i.pesoConfere)
+  const alerta =
+    faltando > 0 ? { classe: 'erro', numero: faltando, titulo: `${faltando} ${faltando === 1 ? 'instrumento ainda não retornou' : 'instrumentos ainda não retornaram'}` }
+    : faltando < 0 ? { classe: 'erro', numero: '!', titulo: 'Foram devolvidos mais instrumentos do que entraram' }
+    : pesoDivergente.length > 0 ? { classe: 'erro', numero: pesoDivergente.length, titulo: `Peso não confere em ${pesoDivergente.length} ${pesoDivergente.length === 1 ? 'item' : 'itens'}` }
+    : divergentes.length > 0 ? { classe: 'erro', numero: divergentes.length, titulo: 'Há itens com divergência' }
+    : { classe: 'ok', numero: '✓', titulo: emCampo ? 'Todos os instrumentos retornaram e o peso confere' : 'Nenhum instrumento em campo' }
 
   return (
     <div className="op">
@@ -80,18 +115,18 @@ export default function Operacao() {
       <div className="op-corpo">
         <aside className="lateral"><Camera /></aside>
         <main className="conferencia">
-          <div className={`alerta ${faltando > 0 ? 'erro' : 'ok'}`} role="status">
-            <b>{faltando > 0 ? faltando : '✓'}</b>
+          <div className={`alerta ${alerta.classe}`} role="status">
+            <b>{alerta.numero}</b>
             <div>
-              <h2>{faltando > 0 ? `${faltando} ${faltando === 1 ? 'instrumento ainda não retornou' : 'instrumentos ainda não retornaram'}` : emCampo ? 'Todos os instrumentos retornaram' : 'Nenhum instrumento em campo'}</h2>
+              <h2>{alerta.titulo}</h2>
               <p>{emCampo} em campo · {devolvidos} devolvidos</p>
             </div>
           </div>
           {erro && <p className="erro caixa-erro" role="alert">{erro}</p>}
           <div className="tabela-rolavel">
             <table className="tabela-conf">
-              <thead><tr><th>Instrumento</th><th>Previsto</th><th>Em campo</th><th>Devolvidos</th><th>Em aberto</th><th>Registrar</th></tr></thead>
-              <tbody>{p.itens.map(i => <ItemLinha key={i.id} item={i} executar={executar} />)}</tbody>
+              <thead><tr><th>Instrumento</th><th>Previsto</th><th>Em campo</th><th>Devolvidos</th><th>Em aberto</th><th>Peso</th><th>Situação</th><th>Registrar</th></tr></thead>
+              <tbody>{p.itens.map(i => <ItemLinha key={i.id} item={i} executar={executar} finalizado={st === 'finalizado'} />)}</tbody>
             </table>
           </div>
           {st === 'andamento' && (
@@ -99,7 +134,7 @@ export default function Operacao() {
               {/* Sempre visível: o back (RN3) exige justificativa se houver divergência de contagem OU de peso (RN4),
                   e a tela não tem como saber a divergência de peso antes de tentar finalizar. */}
               <textarea aria-label="Justificativa" placeholder="Justificativa (obrigatória se houver divergência de contagem ou de peso)" value={justificativa} onChange={e => setJustificativa(e.target.value)} />
-              <button className={`btn ${faltando > 0 ? 'perigo' : 'primario'}`} onClick={finalizar}>Finalizar procedimento</button>
+              <button className={`btn ${alerta.classe === 'erro' ? 'perigo' : 'primario'}`} onClick={finalizar}>Finalizar procedimento</button>
             </div>
           )}
           {st !== 'andamento' && <p className="mudo">Procedimento {p.status}. {final && `Resultado: ${final}.`}</p>}

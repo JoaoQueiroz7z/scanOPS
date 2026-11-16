@@ -7,10 +7,15 @@ export const normalizarItem = i => ({
   previsto: i.quantidadePrevista,
   entrada: i.quantidadeInicial,     // contagem inicial: unidades que entraram em campo
   saida: i.quantidadeFinal,         // contagem final: unidades que voltaram
-  diferenca: i.diferenca,
-  pesoMedido: i.pesoMedido,
+  diferenca: i.diferenca,           // entrada - saída
+  pesoMedido: i.pesoMedido,         // peso gravado no back
+  pesoReferencia: i.pesoReferencia, // peso de uma unidade
+  pesoEsperado: i.pesoEsperado,     // referência × entrada
+  toleranciaPeso: i.toleranciaPeso,
+  pesoConfere: i.pesoConfere,             // RN4, calculado pelo back a qualquer momento
+  possuiDivergencia: i.possuiDivergencia, // contagem OU peso não confere
   identificadoPorCamera: i.identificadoPorCamera,
-  status: i.status,                 // Pendente | Conferido | Divergente
+  status: i.status,                 // Pendente | Conferido | Divergente (só muda ao finalizar)
 })
 
 // ProcedimentoResposta
