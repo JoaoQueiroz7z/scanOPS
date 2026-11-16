@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Camera from '../components/Camera.jsx'
 import { procedimentos } from '../api.js'
-import { normalizarProcedimento, statusDe } from '../mapeadores.js'
+import { normalizarProcedimento, rotuloSala, statusDe } from '../mapeadores.js'
 
 function ItemLinha({ item, executar }) {
   const [qE, setQE] = useState(1)
@@ -75,7 +75,7 @@ export default function Operacao() {
       <header className="op-topo">
         <Link className="link claro" to="/">Voltar</Link>
         <b>scanOPS</b>
-        <span>{p.tipo} · Sala {p.sala} · {p.paciente} · {p.cirurgiao}</span>
+        <span>{p.tipo} · {rotuloSala(p.sala)} · {p.paciente} · {p.cirurgiao}</span>
       </header>
       <div className="op-corpo">
         <aside className="lateral"><Camera /></aside>

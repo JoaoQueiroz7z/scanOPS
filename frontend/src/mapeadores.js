@@ -24,6 +24,10 @@ export const normalizarProcedimento = r => ({
   itens: (r.itens ?? []).map(normalizarItem),
 })
 
+// A sala chega como foi cadastrada: "Sala 1" (dados de demonstração) ou só "03" (tela Novo procedimento).
+// Só acrescenta "Sala" quando o valor ainda não começa com essa palavra.
+export const rotuloSala = sala => !sala ? '' : /^sala\b/i.test(sala.trim()) ? sala.trim() : `Sala ${sala.trim()}`
+
 // Valores do enum StatusProcedimento do back -> classe usada nas telas
 const STATUS = { Planejado: 'planejado', EmAndamento: 'andamento', Finalizado: 'finalizado', Cancelado: 'cancelado' }
 export const statusDe = s => STATUS[s] ?? 'outro'
