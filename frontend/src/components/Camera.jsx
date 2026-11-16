@@ -17,10 +17,13 @@ export default function Camera() {
       .catch(() => setErro('Câmera indisponível. Permita o acesso no navegador ou defina VITE_CAMERA_STREAM.'))
     return () => stream?.getTracks().forEach(t => t.stop())
   }, [])
+  // A mensagem fica fora do quadro do vídeo (que corta o que passa da borda), para aparecer inteira.
   return (
-    <div className="camera">
-      {STREAM ? <img src={STREAM} alt="Imagem da câmera" /> : <video ref={video} autoPlay playsInline muted />}
-      {erro && <p className="camera-erro">{erro}</p>}
-    </div>
+    <>
+      <div className="camera">
+        {STREAM ? <img src={STREAM} alt="Imagem da câmera" /> : <video ref={video} autoPlay playsInline muted />}
+      </div>
+      {erro && <p className="camera-erro" role="status">{erro}</p>}
+    </>
   )
 }

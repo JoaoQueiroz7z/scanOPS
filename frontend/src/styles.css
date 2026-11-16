@@ -51,7 +51,7 @@ label.check{flex-direction:row;align-items:center;gap:8px;font-weight:600}label.
 .lateral{width:320px;flex:none}
 .camera{position:relative;aspect-ratio:4/3;border-radius:20px;overflow:hidden;background:linear-gradient(135deg,#141B26,#2A3748);border:1px solid var(--linha)}
 .camera video,.camera img{width:100%;height:100%;object-fit:cover;display:block}
-.camera-erro{position:absolute;inset:auto 12px 12px;margin:0;padding:10px 14px;border-radius:12px;background:rgba(0,0,0,.65);font-size:13px}
+.camera-erro{margin:10px 0 0;padding:10px 14px;border-radius:12px;background:var(--painel);border:1px solid var(--linha);color:var(--mudo);font-size:13px;line-height:1.45;overflow-wrap:anywhere}
 .conferencia{flex:1;display:flex;flex-direction:column;gap:16px;min-width:0}
 .alerta{display:flex;align-items:center;gap:24px;padding:20px 28px;border-radius:20px;border:1px solid}
 .alerta b{font-size:56px;line-height:1}.alerta h2{margin:0;font-size:22px}.alerta p{margin:4px 0 0;font-size:15px}
