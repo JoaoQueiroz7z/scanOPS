@@ -124,6 +124,8 @@ public class PersistenciaIntegracaoTests
         var exclusao = await cliente.DeleteAsync($"/api/instrumentos/{idPinca}");
 
         Assert.Equal(HttpStatusCode.BadRequest, exclusao.StatusCode);
+        var erro = (await exclusao.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
+        Assert.Equal("Instrumento já usado em procedimento não pode ser excluído. Inative-o.", erro);
         var depois = await cliente.GetFromJsonAsync<JsonElement>("/api/instrumentos");
         Assert.Equal(2, depois.GetArrayLength());
     }

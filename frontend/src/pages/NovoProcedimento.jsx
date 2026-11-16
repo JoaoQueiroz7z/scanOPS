@@ -20,7 +20,8 @@ export default function NovoProcedimento() {
   }, [])
 
   const nomeInst = id => insts.find(i => i.id === id)?.nome ?? id
-  const disponiveis = insts.filter(i => !itens.some(x => x.instrumentoId === i.id))
+  // RN6: instrumento inativo não pode entrar em procedimento novo (o back também recusa).
+  const disponiveis = insts.filter(i => i.ativo && !itens.some(x => x.instrumentoId === i.id))
 
   async function criar(e) {
     e.preventDefault(); setErro('')

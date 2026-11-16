@@ -113,7 +113,7 @@ app.MapDelete("/api/instrumentos/{id}", (Guid id, ScanOpsDbContext db) =>
     if (item is null) return Results.NotFound();
 
     if (db.Set<ItemProcedimento>().Any(i => i.Instrumento.Id == id))
-        throw new RegraDeNegocioException("Instrumento já usado em procedimento não pode ser excluído; inative-o.");
+        throw new RegraDeNegocioException("Instrumento já usado em procedimento não pode ser excluído. Inative-o.");
 
     db.Instrumentos.Remove(item);
     db.SaveChanges();

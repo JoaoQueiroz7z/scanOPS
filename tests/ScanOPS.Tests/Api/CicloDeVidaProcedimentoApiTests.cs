@@ -35,7 +35,14 @@ public class CicloDeVidaProcedimentoApiTests
 
     private static async Task<Guid> PlanejarAsync(HttpClient cliente, Ids ids)
     {
-        var resposta = await cliente.PostAsJsonAsync("/api/procedimentos", new
+        var resposta = await PlanejarRespostaAsync(cliente, ids);
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        return (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
+    }
+
+    private static Task<HttpResponseMessage> PlanejarRespostaAsync(HttpClient cliente, Ids ids)
+    {
+        return cliente.PostAsJsonAsync("/api/procedimentos", new
         {
             tipo = "Colecistectomia", sala = "Sala 2", descricao = (string?)null,
             pacienteId = ids.PacienteId, cirurgiaoId = ids.UsuarioId, instrumentistaId = ids.UsuarioId,
@@ -45,8 +52,6 @@ public class CicloDeVidaProcedimentoApiTests
                 new { instrumentoId = ids.TesouraId, quantidadePrevista = 1 }
             }
         });
-        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        return (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("id").GetGuid();
     }
 
     private static Procedimento LerDoBanco(ApiDeTeste api, Guid id)
@@ -149,6 +154,27 @@ public class CicloDeVidaProcedimentoApiTests
         Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
         using var escopo = api.Services.CreateScope();
         Assert.Equal(1, escopo.ServiceProvider.GetRequiredService<ScanOpsDbContext>().Procedimentos.Count()); // só o da demonstração
+    }
+
+    [Fact]
+    public async Task RN6_PlanejarComInstrumentoInativo_Retorna400ENadaEGravado_EReativadoFunciona()
+    {
+        using var api = new ApiDeTeste();
+        var cliente = api.CreateClient();
+        var ids = await IdsDaDemonstracaoAsync(cliente);
+        await cliente.PostAsync($"/api/instrumentos/{ids.TesouraId}/inativar", null);
+
+        var recusado = await PlanejarRespostaAsync(cliente, ids);
+
+        Assert.Equal(HttpStatusCode.BadRequest, recusado.StatusCode);
+        var erro = (await recusado.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
+        Assert.Contains("inativo", erro);
+        using (var escopo = api.Services.CreateScope())
+            Assert.Equal(1, escopo.ServiceProvider.GetRequiredService<ScanOpsDbContext>().Procedimentos.Count()); // só o da demonstração
+
+        await cliente.PostAsync($"/api/instrumentos/{ids.TesouraId}/reativar", null);
+        var aceito = await PlanejarRespostaAsync(cliente, ids);
+        Assert.Equal(HttpStatusCode.Created, aceito.StatusCode);
     }
 
     [Fact]
