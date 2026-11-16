@@ -1,31 +1,29 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Layout from "./componentes/Layout";
-import Login from "./Paginas/login";
-import VisaoGeral from "./Paginas/VisaoGeral";
-import Paciente from "./Paginas/Paciente";
-import NovoProcedimento from "./Paginas/NovoProcedimento";
-import Instrumentos from "./Paginas/Instrumentos";
-import ContagemInicial from "./Paginas/ContagemInicial";
-import ProcedimentoAndamento from "./Paginas/ProcedimentoAndamento";
-import ContagemFinal from "./Paginas/ContagemFinal";
-import RelatorioFinal from "./Paginas/RelatorioFinal";
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { useAuth } from './auth.jsx'
+import Shell from './components/Shell.jsx'
+import Login from './pages/Login.jsx'
+import Atual from './pages/Atual.jsx'
+import NovoProcedimento from './pages/NovoProcedimento.jsx'
+import Operacao from './pages/Operacao.jsx'
+import { Instrumentos, Pacientes } from './pages/Cadastros.jsx'
+
+function Privado({ children }) {
+  const { usuario } = useAuth()
+  return usuario ? children : <Navigate to="/login" replace />
+}
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route element={<Layout />}>
-          <Route path="/visao-geral" element={<VisaoGeral />} />
-          <Route path="/paciente" element={<Paciente />} />
-          <Route path="/novo-procedimento" element={<NovoProcedimento />} />
-          <Route path="/instrumentos" element={<Instrumentos />} />
-          <Route path="/contagem-inicial" element={<ContagemInicial />} />
-          <Route path="/procedimento-andamento" element={<ProcedimentoAndamento />} />
-          <Route path="/contagem-final" element={<ContagemFinal />} />
-          <Route path="/relatorio-final" element={<RelatorioFinal />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
-  );
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/operacao" element={<Privado><Operacao /></Privado>} />
+      <Route element={<Privado><Shell /></Privado>}>
+        <Route index element={<Atual />} />
+        <Route path="novo" element={<NovoProcedimento />} />
+        <Route path="instrumentos" element={<Instrumentos />} />
+        <Route path="pacientes" element={<Pacientes />} />
+      </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
 }

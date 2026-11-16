@@ -215,6 +215,47 @@ public class RegrasDeNegocioTests
         Assert.False(item.IdentificadoPorCamera);
     }
 
+    // ===================== RN6: instrumento inativo não entra em procedimento novo =====================
+
+    [Fact]
+    public void RN6_Sucesso_InstrumentoAtivo_EhAdicionado()
+    {
+        var procedimento = new Procedimento();
+        var tesoura = new Instrumento { Nome = "Tesoura Mayo", PesoReferencia = 80m };
+
+        procedimento.AdicionarInstrumento(tesoura, 1);
+
+        Assert.Single(procedimento.Itens);
+        Assert.Same(tesoura, procedimento.Itens[0].Instrumento);
+    }
+
+    [Fact]
+    public void RN6_Violacao_InstrumentoInativo_LancaENaoAlteraLista()
+    {
+        var procedimento = new Procedimento();
+        var tesoura = new Instrumento { Nome = "Tesoura Mayo", PesoReferencia = 80m };
+        tesoura.Inativar();
+
+        var erro = Assert.Throws<RegraDeNegocioException>(() => procedimento.AdicionarInstrumento(tesoura, 1));
+
+        Assert.Contains("inativo", erro.Message);
+        Assert.Empty(procedimento.Itens);
+        Assert.Equal(StatusProcedimento.Planejado, procedimento.Status);
+    }
+
+    [Fact]
+    public void RN6_Sucesso_InstrumentoReativado_VoltaASerAceito()
+    {
+        var procedimento = new Procedimento();
+        var tesoura = new Instrumento { Nome = "Tesoura Mayo", PesoReferencia = 80m };
+        tesoura.Inativar();
+        tesoura.Reativar();
+
+        procedimento.AdicionarInstrumento(tesoura, 1);
+
+        Assert.Single(procedimento.Itens);
+    }
+
     // ===================== Cancelamento e composição =====================
 
     [Fact]

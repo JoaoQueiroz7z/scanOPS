@@ -50,6 +50,7 @@ classDiagram
         ~RegistrarIdentificacaoPorCamera(bool identificado)
         ~Conferir()
         +CalcularDiferenca() int
+        +PesoEsperado() decimal
         +ConferePeso() bool
         +PossuiDivergencia() bool
     }
@@ -66,6 +67,7 @@ classDiagram
         +decimal PesoReferencia
         +Editar(string nome, string material, string tamanho)
         +Inativar()
+        +Reativar()
     }
 
     class Paciente {
@@ -76,6 +78,8 @@ classDiagram
         +string TipoSanguineo
         +string Alergias
         +string Observacoes
+        +IReadOnlyList~string~ SexosValidos$
+        +IReadOnlyList~string~ TiposSanguineosValidos$
         +EditarDados(string nome, string alergias, string observacoes)
         +GetIdade() int?
     }
@@ -197,7 +201,8 @@ e não aparecem nas classes. Da mesma forma, `Diferenca` é calculada e não é 
 
 A multiplicidade não expressa todas as regras: "um item só pode ser adicionado enquanto o
 procedimento está Planejado" não cabe no diagrama e é garantido por `AdicionarInstrumento`
-(teste `AdicionarInstrumento_DepoisDeIniciado_LancaENaoAlteraLista`).
+(teste `AdicionarInstrumento_DepoisDeIniciado_LancaENaoAlteraLista`). O mesmo vale para a RN6: a associação
+ItemProcedimento → Instrumento só é criada com instrumento **ativo** (teste `RN6_Violacao_InstrumentoInativo_LancaENaoAlteraLista`).
 
 ## 3. Composição: Procedimento ◆— ItemProcedimento (B05)
 

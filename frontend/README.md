@@ -1,16 +1,39 @@
-# React + Vite
+# scanOPS · front-end (React + Vite, JavaScript)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## Rodar
 
-Currently, two official plugins are available:
+Terminal 1 (back, na raiz do repositório): `dotnet run --urls http://localhost:5000`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Terminal 2 (front):
 
-## React Compiler
+```
+cd frontend
+npm install
+npm run dev            # http://localhost:5173
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+O endereço da API é `http://localhost:5000` por padrão. Para usar outro, copie `.env.example` para `.env`
+e ajuste `VITE_API_URL`.
 
-## Expanding the ESLint configuration
+Login de demonstração: `medico@scanops.com` / `123456`.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Telas e rotas usadas
+
+| Tela | Rotas do back |
+|---|---|
+| Login | `POST /api/login` |
+| Instrumentos / Pacientes (cadastro) | `GET/POST/PUT/DELETE /api/instrumentos` e `/api/pacientes` |
+| Novo procedimento (planejar e iniciar) | `POST /api/procedimentos`, `POST /api/procedimentos/{id}/iniciar` |
+| Procedimento atual | `GET /api/procedimento-atual`, `POST /api/procedimentos/{id}/iniciar` e `/cancelar` |
+| Operação (contagem e finalização) | `POST /api/procedimento-atual/itens/{id}/entrada`, `/saida`, `/pesar` e `POST /api/procedimento-atual/finalizar` |
+
+Os nomes dos campos seguem os DTOs do back (`Api/Dtos/`); a conversão das respostas fica em `src/mapeadores.js`.
+Erros do back chegam como `{ "erro": "mensagem" }` e são mostrados na tela.
+
+## Limitações conhecidas
+
+- A câmera da tela de Operação é só um teste visual com a webcam do navegador; não participa da conferência.
+- Não há lista de procedimentos: um procedimento planejado e não iniciado na hora não aparece em outra tela.
+- O instrumentista é informado pelo id (o back ainda não tem `GET /api/usuarios`); o cirurgião é o usuário logado.
+- O login é guardado só no navegador (`sessionStorage`); o back não exige autenticação nas rotas.
+- Não existe tela de relatório final.

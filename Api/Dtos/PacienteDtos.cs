@@ -26,10 +26,29 @@ public record PacienteRequisicao(
 
     public void AplicarEm(Paciente paciente)
     {
+        // Valida e converte tudo ANTES de alterar o paciente: se algo for recusado, nada muda.
+        var data = ConverterData(DataNascimento);
+        var sexo = ValorDaLista(Sexo, Paciente.SexosValidos, "Sexo");
+        var tipoSanguineo = ValorDaLista(TipoSanguineo?.Replace('−', '-'), Paciente.TiposSanguineosValidos, "Tipo sanguíneo");
+
         paciente.EditarDados(Nome, Alergias ?? "", Observacoes ?? "");
-        paciente.DataNascimento = ConverterData(DataNascimento);
-        paciente.Sexo = Sexo ?? "";
-        paciente.TipoSanguineo = TipoSanguineo ?? "";
+        paciente.DataNascimento = data;
+        paciente.Sexo = sexo;
+        paciente.TipoSanguineo = tipoSanguineo;
+    }
+
+    /// <summary>
+    /// Vazio vira "Não informado"; maiúsculas/minúsculas não importam e o valor é gravado
+    /// como está na lista. Valor fora da lista é regra violada (HTTP 400).
+    /// </summary>
+    private static string ValorDaLista(string? valor, IReadOnlyList<string> validos, string campo)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return Paciente.NaoInformado;
+
+        return validos.FirstOrDefault(v => string.Equals(v, valor.Trim(), StringComparison.OrdinalIgnoreCase))
+            ?? throw new RegraDeNegocioException(
+                $"{campo} inválido: '{valor}'. Use um de: {string.Join(", ", validos)}.");
     }
 
     private static DateOnly? ConverterData(string? data)

@@ -90,13 +90,30 @@ app.MapPut("/api/instrumentos/{id}", (Guid id, InstrumentoRequisicao dados, Scan
     return Results.Ok(InstrumentoResposta.De(item));
 });
 
+// Inativar/reativar chamam os métodos do domínio. Inativo não entra em procedimento novo (RN6).
+app.MapPost("/api/instrumentos/{id}/inativar", (Guid id, ScanOpsDbContext db) =>
+{
+    var item = db.Instrumentos.Find(id) ?? throw new KeyNotFoundException("Instrumento não encontrado.");
+    item.Inativar();
+    db.SaveChanges();
+    return Results.Ok(InstrumentoResposta.De(item));
+});
+
+app.MapPost("/api/instrumentos/{id}/reativar", (Guid id, ScanOpsDbContext db) =>
+{
+    var item = db.Instrumentos.Find(id) ?? throw new KeyNotFoundException("Instrumento não encontrado.");
+    item.Reativar();
+    db.SaveChanges();
+    return Results.Ok(InstrumentoResposta.De(item));
+});
+
 app.MapDelete("/api/instrumentos/{id}", (Guid id, ScanOpsDbContext db) =>
 {
     var item = db.Instrumentos.Find(id);
     if (item is null) return Results.NotFound();
 
     if (db.Set<ItemProcedimento>().Any(i => i.Instrumento.Id == id))
-        throw new RegraDeNegocioException("Instrumento já usado em procedimento não pode ser excluído; inative-o.");
+        throw new RegraDeNegocioException("Instrumento já usado em procedimento não pode ser excluído. Inative-o.");
 
     db.Instrumentos.Remove(item);
     db.SaveChanges();

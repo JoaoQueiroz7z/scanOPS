@@ -9,14 +9,13 @@
 
 ## Situação atual
 
-- [x] Domínio com regras RN1–RN5 e estados do procedimento
+- [x] Domínio com regras RN1–RN6 e estados do procedimento
 - [x] API com DTOs, tratamento central de erros e rotas de cadastro, planejamento e contagem
 - [x] Banco SQLite (EF Core) criado automaticamente
 - [x] Duas balanças simuladas escolhidas por configuração
-- [x] 85 testes automatizados (domínio, exceções, API e persistência)
+- [x] 103 testes automatizados (domínio, exceções, API e persistência)
 - [x] Documentação da AV2 em `docs/av2/`
-- [x] Telas do front-end criadas (React + Vite)
-- [ ] Tela Novo Procedimento ligada às rotas de planejar/iniciar
+- [x] Front-end com login, procedimento atual, novo procedimento, operação e cadastros, ligado às rotas do back
 - [ ] Câmera integrada à conferência
 - [ ] Relatório em PDF
 - [ ] Controle de acesso por usuário e perfil
@@ -65,7 +64,7 @@
 
 ## Fase 3 — Regras de negócio
 
-- [x] RN1–RN5 nos métodos de `Procedimento` e `ItemProcedimento` **(mudou: o plano previa `CirurgiaService`, `ContagemService` e `ConferenciaPesoService`; ver ADR-011)**
+- [x] RN1–RN6 nos métodos de `Procedimento` e `ItemProcedimento` **(mudou: o plano previa `CirurgiaService`, `ContagemService` e `ConferenciaPesoService`; ver ADR-011)**
 - [x] `ServicoDePesagem` (liga a balança ao procedimento)
 - [x] Testes de sucesso e violação para cada regra
 
@@ -87,15 +86,19 @@
 
 ## Fase 6 — Front-end
 
-- [x] Telas: Login, Visão Geral, Paciente, Novo Procedimento, Instrumentos, Contagem Inicial, Procedimento em Andamento, Contagem Final, Relatório Final
-- [ ] Camada `api/` única para as chamadas HTTP
-- [ ] Tela Novo Procedimento usando `POST /api/procedimentos` e `/iniciar`
-- [ ] Guardar o usuário logado e controlar rotas por perfil
-- [ ] Verificar o front com Node.js instalado (não verificado na última auditoria)
+- [x] Telas: Login, Procedimento atual, Novo procedimento, Operação, Instrumentos e Pacientes **(mudou: o front inicial tinha telas separadas de contagem inicial/final e várias telas vazias; foi substituído por um front novo do grupo)**
+- [x] Chamadas HTTP concentradas em `src/api.js`
+- [x] Novo procedimento usando `POST /api/procedimentos` e `/iniciar`
+- [x] Usuário logado guardado no navegador (`sessionStorage`)
+- [x] Compilação verificada com `npm run build`
+- [ ] Controlar rotas por perfil
+- [ ] Lista/histórico de procedimentos
+- [ ] Escolher o instrumentista numa lista (falta `GET /api/usuarios` no back)
+- [ ] Câmera ligada ao back (hoje a webcam é só teste visual)
 
 ## Fase 7 — Relatórios
 
-- [ ] Rota e tela do Relatório Final com dados reais
+- [ ] Rota e tela de relatório final (não existe tela de relatório no front atual)
 - [ ] `Relatorio.GerarPDF()` (hoje lança `NotImplementedException`)
 - [ ] Gravar o relatório e as assinaturas no banco
 

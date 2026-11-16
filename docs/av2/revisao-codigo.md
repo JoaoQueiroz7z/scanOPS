@@ -48,7 +48,7 @@ ficou no commit anterior (`7782869`), junto dos testes, e não se mistura com a 
 - Rotas `/entrada` e `/saida`: o **contrato HTTP muda** — casos que antes davam 200 agora dão 400 (contagem após finalizar, entrada ≤ 0, saída < 0) e item inexistente continua 404.
 
 **Impacto transitivo**
-- Front-end: `ContagemInicial.jsx` envia entrada `1`; `ContagemFinal.jsx` envia saída igual à
+- Front-end (da época deste commit; essas telas foram substituídas depois pelo front novo, que também aceita saída 0): `ContagemInicial.jsx` envia entrada `1`; `ContagemFinal.jsx` envia saída igual à
   inicial ou `inicial - 1` (pode ser 0). Os dois continuam aceitos → as telas não quebram.
 - Demais rotas (instrumentos, pacientes, login, finalizar): não tocadas.
 

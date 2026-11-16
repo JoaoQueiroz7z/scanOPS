@@ -22,7 +22,7 @@
     },
     "A03": {
       "status": "atendido",
-      "resumo": "Regras RN1 a RN5 implementadas no domínio e chamadas pelas rotas da API.",
+      "resumo": "Regras RN1 a RN6 implementadas no domínio e chamadas pelas rotas da API (RN6: instrumento inativo não entra em procedimento novo).",
       "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs", "Program.cs", "docs/av2/especificacao.md", "docs/av2/rastreabilidade.md"],
       "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
     },
@@ -180,7 +180,7 @@
     },
     "F01": {
       "status": "atendido",
-      "resumo": "Sucesso e violação para RN1 a RN5 (mais de 10 cenários).",
+      "resumo": "Sucesso e violação para RN1 a RN6 (mais de 10 cenários).",
       "evidencias": ["docs/av2/rastreabilidade.md#1-regras-de-negócio"],
       "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
     },
@@ -212,7 +212,7 @@
     },
     "G01": {
       "status": "atendido",
-      "resumo": "Especificação dos 3 fluxos, 5 regras, estados e critérios de aceitação Dado/Quando/Então.",
+      "resumo": "Especificação dos 3 fluxos, 6 regras (RN1 a RN6), estados e critérios de aceitação Dado/Quando/Então.",
       "evidencias": ["docs/av2/especificacao.md"]
     },
     "G02": {

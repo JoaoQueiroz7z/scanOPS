@@ -95,6 +95,9 @@ public class Procedimento
             throw new RegraDeNegocioException("Só é possível adicionar instrumentos a um procedimento planejado.");
         if (quantidadePrevista <= 0)
             throw new RegraDeNegocioException("A quantidade prevista deve ser maior que zero.");
+        // RN6: instrumento inativo (fora de uso) não pode entrar num procedimento novo.
+        if (!instrumento.Ativo)
+            throw new RegraDeNegocioException($"O instrumento \"{instrumento.Nome}\" está inativo e não pode ser adicionado a um procedimento.");
 
         var item = new ItemProcedimento(instrumento, quantidadePrevista, sequencia: _itens.Count + 1);
         _itens.Add(item);
