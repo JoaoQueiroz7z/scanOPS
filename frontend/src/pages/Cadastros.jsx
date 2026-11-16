@@ -4,7 +4,9 @@ import { instrumentos, pacientes } from '../api.js'
 // CRUD genérico. As chaves de CAMPOS são exatamente os campos dos DTOs do back
 // (Api/Dtos/InstrumentoDtos.cs e Api/Dtos/PacienteDtos.cs).
 // Tipos de campo suportados: text, number, date e select (com "opcoes").
-function Crud({ titulo, api, campos, singular }) {
+// colunasExtras: colunas só de leitura na tabela (não entram no formulário).
+// acaoExtra(item, executar): botão a mais por linha (ex.: Inativar).
+function Crud({ titulo, api, campos, singular, colunasExtras = [], acaoExtra }) {
   const [lista, setLista] = useState([])
   const [form, setForm] = useState(null) // null = fechado; {} = novo; {id,...} = edição
   const [erro, setErro] = useState('')
@@ -27,6 +29,10 @@ function Crud({ titulo, api, campos, singular }) {
     if (!confirm(`Excluir "${item[campos[0].chave]}"?`)) return
     setErro('')
     try { await api.excluir(item.id); carregar() } catch (err) { setErro(err.message) }
+  }
+  async function executar(fn) {
+    setErro('')
+    try { await fn(); carregar() } catch (err) { setErro(err.message) }
   }
 
   const valor = (item, c) => {
@@ -62,15 +68,16 @@ function Crud({ titulo, api, campos, singular }) {
         </form>
       )}
       <table>
-        <thead><tr>{campos.map(c => <th key={c.chave}>{c.rotulo}</th>)}<th>Ações</th></tr></thead>
+        <thead><tr>{campos.map(c => <th key={c.chave}>{c.rotulo}</th>)}{colunasExtras.map(c => <th key={c.rotulo}>{c.rotulo}</th>)}<th>Ações</th></tr></thead>
         <tbody>
           {lista.map(item => (
             <tr key={item.id}>
               {campos.map(c => <td key={c.chave}>{valor(item, c)}</td>)}
-              <td><button className="link" onClick={() => { setErro(''); setForm(paraForm(item)) }}>Editar</button> <button className="link vermelho" onClick={() => excluir(item)}>Excluir</button></td>
+              {colunasExtras.map(c => <td key={c.rotulo}>{c.valor(item)}</td>)}
+              <td><button className="link" onClick={() => { setErro(''); setForm(paraForm(item)) }}>Editar</button> {acaoExtra && <>{acaoExtra(item, executar)} </>}<button className="link vermelho" onClick={() => excluir(item)}>Excluir</button></td>
             </tr>
           ))}
-          {!lista.length && <tr><td colSpan={campos.length + 1}>Nenhum registro ainda.</td></tr>}
+          {!lista.length && <tr><td colSpan={campos.length + colunasExtras.length + 1}>Nenhum registro ainda.</td></tr>}
         </tbody>
       </table>
     </>
@@ -109,5 +116,12 @@ const CAMPOS_PACIENTE = [
   { chave: 'observacoes', rotulo: 'Observações', tipo: 'text' },
 ]
 
-export const Instrumentos = () => <Crud titulo="Instrumentos" singular="instrumento" api={instrumentos} campos={CAMPOS_INSTRUMENTO} />
+// "Ativo" vem do back e só muda pelas rotas /inativar e /reativar (métodos do domínio).
+const COLUNAS_INSTRUMENTO = [{ rotulo: 'Ativo', valor: i => (i.ativo ? 'Sim' : 'Não') }]
+const acaoInstrumento = (item, executar) => item.ativo
+  ? <button className="link" onClick={() => executar(() => instrumentos.inativar(item.id))}>Inativar</button>
+  : <button className="link" onClick={() => executar(() => instrumentos.reativar(item.id))}>Reativar</button>
+
+export const Instrumentos = () => <Crud titulo="Instrumentos" singular="instrumento" api={instrumentos} campos={CAMPOS_INSTRUMENTO}
+  colunasExtras={COLUNAS_INSTRUMENTO} acaoExtra={acaoInstrumento} />
 export const Pacientes = () => <Crud titulo="Pacientes" singular="paciente" api={pacientes} campos={CAMPOS_PACIENTE} />

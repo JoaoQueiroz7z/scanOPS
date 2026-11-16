@@ -33,7 +33,11 @@ export const crud = base => ({
   atualizar: (id, d) => http(`/api/${base}/${id}`, { method: 'PUT', body: d }),
   excluir: id => http(`/api/${base}/${id}`, { method: 'DELETE' }),
 })
-export const instrumentos = crud('instrumentos')
+export const instrumentos = {
+  ...crud('instrumentos'),
+  inativar: id => http(`/api/instrumentos/${id}/inativar`, { method: 'POST' }),
+  reativar: id => http(`/api/instrumentos/${id}/reativar`, { method: 'POST' }),
+}
 export const pacientes = crud('pacientes')
 
 export const procedimentos = {
