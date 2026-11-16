@@ -45,14 +45,23 @@ public record ItemProcedimentoResposta(
         i.Diferenca, i.PesoMedido, i.IdentificadoPorCamera, i.Status.ToString());
 }
 
+/// <summary>
+/// Dados do procedimento para as telas. Paciente e Cirurgiao vêm só com o nome
+/// (a tela não precisa do cadastro completo de pessoas).
+/// </summary>
 public record ProcedimentoResposta(
     Guid Id,
     string Tipo,
     string Status,
+    string Sala,
+    string Paciente,
+    string Cirurgiao,
     IReadOnlyList<ItemProcedimentoResposta> Itens)
 {
     public static ProcedimentoResposta De(Procedimento p) => new(
-        p.Id, p.Tipo, p.Status.ToString(), p.Itens.Select(ItemProcedimentoResposta.De).ToList());
+        p.Id, p.Tipo, p.Status.ToString(), p.Sala,
+        p.Paciente?.Nome ?? "", p.Cirurgiao?.Nome ?? "",
+        p.Itens.Select(ItemProcedimentoResposta.De).ToList());
 }
 
 public record PesagemResposta(decimal PesoMedido);

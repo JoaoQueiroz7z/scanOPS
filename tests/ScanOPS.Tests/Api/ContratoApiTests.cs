@@ -160,4 +160,48 @@ public class ContratoApiTests
         var erro = (await resposta.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("erro").GetString();
         Assert.Equal(TratadorDeExcecoes.MensagemRequisicaoInvalida, erro);
     }
+
+    // ---------- Procedimento: dados para a tela ----------
+
+    [Fact]
+    public async Task ProcedimentoAtual_DevolveSalaENomesDoPacienteEDoCirurgiao()
+    {
+        using var api = new ApiDeTeste();
+
+        var atual = await api.CreateClient().GetFromJsonAsync<JsonElement>("/api/procedimento-atual");
+
+        // Dados de demonstração gravados por Persistencia/InicializadorDoBanco.cs
+        Assert.Equal("Sala 1", atual.GetProperty("sala").GetString());
+        Assert.Equal("Paciente Demo", atual.GetProperty("paciente").GetString());
+        Assert.Equal("Dr. Teste", atual.GetProperty("cirurgiao").GetString());
+    }
+
+    [Fact]
+    public async Task PlanejarProcedimento_RespostaTrazSalaPacienteECirurgiaoInformados()
+    {
+        using var api = new ApiDeTeste();
+        var cliente = api.CreateClient();
+        var usuario = await (await cliente.PostAsJsonAsync("/api/login", new { email = "medico@scanops.com", senha = "123456" }))
+            .Content.ReadFromJsonAsync<JsonElement>();
+        var paciente = await (await cliente.PostAsJsonAsync("/api/pacientes", new
+        {
+            nome = "Ana Souza", dataNascimento = "", sexo = "F", tipoSanguineo = "", alergias = "", observacoes = ""
+        })).Content.ReadFromJsonAsync<JsonElement>();
+        var instrumentos = await cliente.GetFromJsonAsync<JsonElement>("/api/instrumentos");
+        var idUsuario = usuario.GetProperty("id").GetGuid();
+
+        var resposta = await cliente.PostAsJsonAsync("/api/procedimentos", new
+        {
+            tipo = "Colecistectomia", sala = "Sala 3", descricao = (string?)null,
+            pacienteId = paciente.GetProperty("id").GetGuid(), cirurgiaoId = idUsuario, instrumentistaId = idUsuario,
+            itens = new[] { new { instrumentoId = instrumentos[0].GetProperty("id").GetGuid(), quantidadePrevista = 2 } }
+        });
+
+        var criado = await resposta.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.Equal("Sala 3", criado.GetProperty("sala").GetString());
+        Assert.Equal("Ana Souza", criado.GetProperty("paciente").GetString());
+        Assert.Equal("Dr. Teste", criado.GetProperty("cirurgiao").GetString());
+        Assert.Equal("Planejado", criado.GetProperty("status").GetString());
+    }
 }
