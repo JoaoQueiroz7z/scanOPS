@@ -24,6 +24,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<ScanOpsDbContext>(o =>
     o.UseSqlite(builder.Configuration.GetConnectionString("ScanOps")));
 builder.Services.AddScoped<IRepositorioDeProcedimentos, RepositorioDeProcedimentos>();
+builder.Services.AddScoped<ServicoDeInicioDeProcedimento>(); // RN7: uma sala, um procedimento em andamento
 
 // Hardware atrás de interface: as rotas dependem de IBalanca, não da classe concreta.
 // A implementação (BalancaSimulada ou BalancaComRuido) vem de appsettings.json -> "Balanca:Tipo".
@@ -194,13 +195,9 @@ app.MapGet("/api/procedimentos/{id}", (Guid id, IRepositorioDeProcedimentos repo
     ProcedimentoResposta.De(ObterPorId(repositorio, id)));
 
 // RN1: só inicia se Planejado. Depois de iniciado, passa a ser o "procedimento atual".
-app.MapPost("/api/procedimentos/{id}/iniciar", (Guid id, IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterPorId(repositorio, id);
-    procedimento.Iniciar();
-    repositorio.Salvar();
-    return Results.Ok(ProcedimentoResposta.De(procedimento));
-});
+// RN1 (só Planejado) e RN7 (sala livre), pelo serviço de domínio.
+app.MapPost("/api/procedimentos/{id}/iniciar", (Guid id, ServicoDeInicioDeProcedimento inicio) =>
+    Results.Ok(ProcedimentoResposta.De(inicio.Iniciar(id))));
 
 app.MapPost("/api/procedimentos/{id}/cancelar", (Guid id, CancelarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
 {

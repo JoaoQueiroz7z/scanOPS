@@ -33,6 +33,13 @@ public class ScanOpsDbContext : DbContext
             // itens junto com o procedimento.
             p.HasMany(x => x.Itens).WithOne().HasForeignKey("ProcedimentoId").OnDelete(DeleteBehavior.Cascade);
             p.Navigation(x => x.Itens).HasField("_itens").UsePropertyAccessMode(PropertyAccessMode.Field);
+
+            // RN7 (proteção extra): no máximo um procedimento EmAndamento por sala.
+            // Índice único PARCIAL: só vale para as linhas com Status = EmAndamento (valor 1 do enum).
+            p.HasIndex(x => x.Sala)
+                .IsUnique()
+                .HasFilter($"\"Status\" = {(int)StatusProcedimento.EmAndamento}")
+                .HasDatabaseName("IX_Procedimentos_Sala_EmAndamento");
         });
 
         modelo.Entity<ItemProcedimento>(i =>
