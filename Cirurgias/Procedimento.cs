@@ -43,7 +43,7 @@ public class Procedimento
     public Procedimento(string tipo, string sala, string? descricao, Paciente paciente, Usuario cirurgiao, Usuario instrumentista)
     {
         Tipo = tipo;
-        Sala = sala;
+        Sala = SalaCirurgica.Padronizar(sala); // "sala 02" -> "Sala 2" (base da RN7)
         Descricao = descricao ?? "";
         Paciente = paciente;
         Cirurgiao = cirurgiao;
