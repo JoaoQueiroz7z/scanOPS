@@ -14,6 +14,13 @@ public class ItemProcedimento
     public Guid Id { get; private set; } = Guid.NewGuid();
     public int Sequencia { get; private set; }
     public Instrumento Instrumento { get; private set; }
+
+    // "Foto" do instrumento no momento em que entrou no procedimento. Se o cadastro do
+    // instrumento for renomeado ou tiver o peso corrigido depois, o histórico (e a RN4)
+    // continuam usando o que valia na cirurgia. Ver docs/av2/analise-modelo.md, decisão 3.
+    public string NomeInstrumento { get; private set; } = "";
+    public decimal PesoReferencia { get; private set; }
+
     public int QuantidadePrevista { get; private set; }
     public int QuantidadeInicial { get; private set; }
     public int QuantidadeFinal { get; private set; }
@@ -26,6 +33,8 @@ public class ItemProcedimento
     internal ItemProcedimento(Instrumento instrumento, int quantidadePrevista, int sequencia)
     {
         Instrumento = instrumento;
+        NomeInstrumento = instrumento.Nome;
+        PesoReferencia = instrumento.PesoReferencia;
         QuantidadePrevista = quantidadePrevista;
         Sequencia = sequencia;
     }
@@ -64,7 +73,7 @@ public class ItemProcedimento
     /// <summary>Peso que deveria voltar: peso de referência × unidades que entraram em campo.</summary>
     public decimal PesoEsperado()
     {
-        return Instrumento.PesoReferencia * QuantidadeInicial;
+        return PesoReferencia * QuantidadeInicial; // peso de referência da "foto"
     }
 
     // RN4: o peso medido precisa bater com o peso de referência esperado, dentro da tolerância.

@@ -19,18 +19,36 @@ public class Procedimento
 {
     private readonly List<ItemProcedimento> _itens = new();
 
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public string Tipo { get; set; } = "";
-    public string Descricao { get; set; } = "";
-    public string Sala { get; set; } = "";
+    // Dados do procedimento: definidos na criação e fechados depois (nenhum setter público),
+    // para que um procedimento encerrado (histórico) não possa ser alterado.
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public string Tipo { get; private set; } = "";
+    public string Descricao { get; private set; } = "";
+    public string Sala { get; private set; } = "";
     public DateTime? DataHoraInicio { get; private set; }
-    public DateTime? DataHoraFim { get; private set; }
+    public DateTime? DataHoraFim { get; private set; }   // fim da cirurgia ou momento do cancelamento
     public StatusProcedimento Status { get; private set; } = StatusProcedimento.Planejado;
     public string Observacoes { get; private set; } = "";
+    public string? Justificativa { get; private set; }      // registrada ao finalizar com divergência (RN3)
+    public string? MotivoCancelamento { get; private set; } // registrado ao cancelar
 
-    public Paciente Paciente { get; set; } = null!;
-    public Usuario Cirurgiao { get; set; } = null!;
-    public Usuario Instrumentista { get; set; } = null!;
+    public Paciente Paciente { get; private set; } = null!;
+    public Usuario Cirurgiao { get; private set; } = null!;
+    public Usuario Instrumentista { get; private set; } = null!;
+
+    /// <summary>Procedimento sem dados de identificação (usado nos testes de regra e pelo EF Core).</summary>
+    public Procedimento() { }
+
+    /// <summary>Planeja um procedimento: nasce Planejado, com seus dados já definidos.</summary>
+    public Procedimento(string tipo, string sala, string? descricao, Paciente paciente, Usuario cirurgiao, Usuario instrumentista)
+    {
+        Tipo = tipo;
+        Sala = SalaCirurgica.Padronizar(sala); // "sala 02" -> "Sala 2" (base da RN7)
+        Descricao = descricao ?? "";
+        Paciente = paciente;
+        Cirurgiao = cirurgiao;
+        Instrumentista = instrumentista;
+    }
 
     // Somente leitura para quem está fora: a lista só muda por AdicionarInstrumento.
     public IReadOnlyList<ItemProcedimento> Itens => _itens;
@@ -66,7 +84,10 @@ public class Procedimento
             item.Conferir();
 
         if (possuiDivergencia)
-            Observacoes = $"{Observacoes}\n[Justificativa] {justificativa!.Trim()}".Trim();
+        {
+            Justificativa = justificativa!.Trim();
+            Observacoes = $"{Observacoes}\n[Justificativa] {Justificativa}".Trim();
+        }
 
         Status = StatusProcedimento.Finalizado;
         DataHoraFim = DateTime.Now;
@@ -81,8 +102,10 @@ public class Procedimento
         if (string.IsNullOrWhiteSpace(motivo))
             throw new RegraDeNegocioException("Informe o motivo do cancelamento.");
 
-        Observacoes = $"{Observacoes}\n[Cancelamento] {motivo.Trim()}".Trim();
+        MotivoCancelamento = motivo.Trim();
+        Observacoes = $"{Observacoes}\n[Cancelamento] {MotivoCancelamento}".Trim();
         Status = StatusProcedimento.Cancelado;
+        DataHoraFim = DateTime.Now; // para o histórico saber quando foi cancelado
     }
 
     // ===================== Itens e contagens =====================

@@ -40,7 +40,7 @@ flowchart LR
     UI["Front-end<br/>React + Vite"] -- "HTTP/JSON (DTOs)" --> API["API<br/>Program.cs + Api/Dtos"]
     API --> TRAT["Api/TratadorDeExcecoes<br/>(erros → HTTP)"]
     API --> REPO["Persistencia/<br/>IRepositorioDeProcedimentos"]
-    API --> SRV["Servicos/<br/>ServicoDePesagem"]
+    API --> SRV["Servicos/<br/>ServicoDePesagem,<br/>ServicoDeInicioDeProcedimento (RN7)"]
     API --> DOM["Domínio<br/>Procedimento, ItemProcedimento,<br/>Instrumento, Paciente, Usuario"]
     SRV --> HW["Hardware/<br/>IBalanca"]
     SRV --> DOM
@@ -103,6 +103,7 @@ Resumo (diagrama completo, com atributos, métodos, multiplicidades e invariante
 | RN4 | Peso medido = referência × quantidade inicial, tolerância ±2 g | `ItemProcedimento.ConferePeso` |
 | RN5 | Contagem só `EmAndamento`; entrada > 0, saída ≥ 0, peso ≥ 0 | `Procedimento.RegistrarEntrada/Saida/Peso` |
 | RN6 | Instrumento inativo não entra em procedimento novo | `Procedimento.AdicionarInstrumento` |
+| RN7 | Uma sala, um procedimento em andamento (sala comparada padronizada) | `ServicoDeInicioDeProcedimento` + índice único parcial no banco |
 
 Critérios de aceitação e testes de cada regra: [`av2/especificacao.md`](av2/especificacao.md) e
 [`av2/rastreabilidade.md`](av2/rastreabilidade.md).
@@ -132,14 +133,21 @@ Todas as rotas recebem e devolvem DTOs (`Api/Dtos/`); erros saem como `{ "erro":
 | GET/POST | `/api/pacientes` | Lista / cadastra |
 | GET/PUT/DELETE | `/api/pacientes/{id}` | Detalhe / edita / exclui (400 se tem procedimento) |
 | POST | `/api/procedimentos` | Planeja um procedimento (`Planejado`) |
-| GET | `/api/procedimentos/{id}` | Detalhe |
-| POST | `/api/procedimentos/{id}/iniciar` | Inicia (RN1) |
-| POST | `/api/procedimentos/{id}/cancelar` | Cancela com motivo |
-| GET | `/api/procedimento-atual` | Procedimento de início mais recente, com itens |
-| POST | `/api/procedimento-atual/itens/{itemId}/entrada` | Contagem inicial (RN5) |
-| POST | `/api/procedimento-atual/itens/{itemId}/saida` | Contagem final + peso + câmera (RN5) |
-| POST | `/api/procedimento-atual/itens/{itemId}/pesar` | Lê a balança configurada e grava o peso |
-| POST | `/api/procedimento-atual/finalizar` | Finaliza (RN2, RN3) |
+| GET | `/api/procedimentos/{id}` | Detalhe completo (datas, duração, justificativa/motivo, itens) |
+| GET | `/api/procedimentos/historico` | Finalizados e Cancelados, mais recentes primeiro (só leitura) |
+| GET | `/api/procedimentos/planejados` | Planejados ainda não iniciados |
+| POST | `/api/procedimentos/{id}/iniciar` | Inicia (RN1, RN7) |
+| POST | `/api/procedimentos/{id}/cancelar` | Cancela com motivo (registra a hora) |
+| POST | `/api/procedimentos/{id}/itens/{itemId}/entrada` | Contagem inicial (RN5) |
+| POST | `/api/procedimentos/{id}/itens/{itemId}/saida` | Contagem final + peso + câmera (RN5) |
+| POST | `/api/procedimentos/{id}/itens/{itemId}/pesar` | Lê a balança configurada e grava o peso |
+| POST | `/api/procedimentos/{id}/finalizar` | Finaliza (RN2, RN3) |
+| GET | `/api/salas/em-uso` | Salas ocupadas com o procedimento em andamento de cada uma |
+| GET | `/api/procedimento-atual` | *(antiga, compatibilidade)* Procedimento de início mais recente, com itens |
+| POST | `/api/procedimento-atual/itens/{itemId}/entrada` | *(antiga)* Mesma operação da rota por id |
+| POST | `/api/procedimento-atual/itens/{itemId}/saida` | *(antiga)* Mesma operação da rota por id |
+| POST | `/api/procedimento-atual/itens/{itemId}/pesar` | *(antiga)* Mesma operação da rota por id |
+| POST | `/api/procedimento-atual/finalizar` | *(antiga)* Mesma operação da rota por id |
 
 Códigos de erro: regra violada → 400; recurso inexistente → 404; JSON inválido → 400; balança
 indisponível → 503; erro inesperado → 500 (sem detalhes internos). Ver
@@ -152,16 +160,17 @@ As rotas **não** exigem usuário autenticado (ver ADR-008).
 | Tela | Arquivo | O que faz | Rotas usadas |
 |---|---|---|---|
 | Login | `src/pages/Login.jsx` | Entrar com e-mail e senha | `POST /api/login` |
-| Procedimento atual | `src/pages/Atual.jsx` | Dados, itens e status; iniciar ou cancelar (só planejado) | `GET /api/procedimento-atual`, `/iniciar`, `/cancelar` |
-| Novo procedimento | `src/pages/NovoProcedimento.jsx` | Planejar com paciente e instrumentos previstos; "Iniciar agora" | `POST /api/procedimentos`, `/iniciar` |
-| Operação | `src/pages/Operacao.jsx` | Entrada, saída com peso obrigatório, pesagem pela balança, peso gravado × esperado e divergência por item, finalização com justificativa | `/entrada`, `/saida`, `/pesar`, `/finalizar` |
+| Salas em uso (início) | `src/pages/Salas.jsx` | Salas ocupadas com o procedimento em andamento; planejados com Iniciar (erro da RN7 aparece aqui) e Cancelar | `GET /api/salas/em-uso`, `GET /api/procedimentos/planejados`, `/iniciar`, `/cancelar` |
+| Histórico | `src/pages/Historico.jsx` | Lista das cirurgias encerradas e detalhe completo com itens; sem editar nem excluir | `GET /api/procedimentos/historico`, `GET /api/procedimentos/{id}` |
+| Novo procedimento | `src/pages/NovoProcedimento.jsx` | Planejar com paciente, sala e instrumentos previstos; "Iniciar agora" abre a operação | `POST /api/procedimentos`, `/iniciar` |
+| Operação (`/operacao/{id}`) | `src/pages/Operacao.jsx` | Entrada, saída com peso obrigatório, pesagem pela balança, peso gravado × esperado e divergência por item, finalização com justificativa | `/entrada`, `/saida`, `/pesar`, `/finalizar` |
 | Instrumentos / Pacientes | `src/pages/Cadastros.jsx` | Listar, cadastrar, editar e excluir; inativar/reativar instrumento; sexo e tipo sanguíneo em listas | `/api/instrumentos` (+ `/inativar`, `/reativar`), `/api/pacientes` |
 
 - Todas as chamadas HTTP ficam em `src/api.js`; a conversão das respostas (DTOs) fica em `src/mapeadores.js`.
 - Erros do back (`{ "erro": "..." }`) aparecem na tela.
 - A câmera da tela de Operação (`src/components/Camera.jsx`) é só um teste visual com a webcam do navegador; não participa da conferência.
 - O usuário logado fica no `sessionStorage` do navegador; as rotas do back não exigem login (ADR-008).
-- Não há tela de relatório final nem lista de procedimentos.
+- Não há tela de relatório final.
 
 Desenvolvimento: front em `http://localhost:5173`, API em `http://localhost:5000` (CORS liberado para 5173/5174).
 
@@ -209,4 +218,5 @@ Regras:
 | Contagem final | Unidades que voltaram (`QuantidadeFinal`). |
 | Peso de referência | Peso cadastrado de uma unidade do instrumento. |
 | Divergência | Contagem inicial ≠ final, ou peso fora da tolerância. |
-| Procedimento atual | O procedimento com início mais recente; é o usado pela tela de Operação. |
+| Sala em uso | Sala com um procedimento `EmAndamento` (no máximo um por sala, RN7). |
+| Procedimento atual | *(rotas antigas)* O procedimento com início mais recente; o front não usa mais. |

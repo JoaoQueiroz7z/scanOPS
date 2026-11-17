@@ -19,7 +19,10 @@ classDiagram
         +DateTime? DataHoraFim
         +StatusProcedimento Status
         +string Observacoes
+        +string? Justificativa
+        +string? MotivoCancelamento
         +IReadOnlyList~ItemProcedimento~ Itens
+        +Procedimento(string tipo, string sala, string? descricao, Paciente paciente, Usuario cirurgiao, Usuario instrumentista)
         +Iniciar()
         +Finalizar(string? justificativa)
         +Cancelar(string motivo)
@@ -36,6 +39,8 @@ classDiagram
     class ItemProcedimento {
         +Guid Id
         +int Sequencia
+        +string NomeInstrumento
+        +decimal PesoReferencia
         +int QuantidadePrevista
         +int QuantidadeInicial
         +int QuantidadeFinal
@@ -138,6 +143,26 @@ classDiagram
         +PesarItem(Procedimento procedimento, Guid itemId) decimal
     }
 
+    class ServicoDeInicioDeProcedimento {
+        -IRepositorioDeProcedimentos _repositorio
+        +Iniciar(Guid procedimentoId) Procedimento
+    }
+
+    class IRepositorioDeProcedimentos {
+        <<interface>>
+        +ObterPorId(Guid id) Procedimento?
+        +ListarPorStatus(StatusProcedimento[] status) IReadOnlyList~Procedimento~
+        +ObterEmAndamentoNaSala(string sala, Guid exceto) Procedimento?
+        +Adicionar(Procedimento procedimento)
+        +Salvar()
+    }
+
+    class SalaCirurgica {
+        <<static>>
+        +Padronizar(string? sala) string
+        +MesmaSala(string a, string b) bool
+    }
+
     class StatusProcedimento {
         <<enumeration>>
         Planejado
@@ -166,8 +191,11 @@ classDiagram
     IBalanca <|.. BalancaComRuido
     ServicoDePesagem "1" --> "1" IBalanca : usa (injetada)
     ServicoDePesagem ..> Procedimento : RegistrarPeso()
+    ServicoDeInicioDeProcedimento --> IRepositorioDeProcedimentos : consulta a sala (RN7)
+    ServicoDeInicioDeProcedimento ..> Procedimento : Iniciar() (RN1)
+    Procedimento ..> SalaCirurgica : padroniza a sala
 
-    note for Procedimento "Invariante: Finalizado ou Cancelado não aceita\nalteração de contagem; só o Procedimento altera\nseu Status e seus itens; operação recusada\nnão deixa estado parcial."
+    note for Procedimento "Invariante: Finalizado ou Cancelado não aceita\nnenhuma alteração; só o Procedimento altera\nseu Status e seus itens; operação recusada\nnão deixa estado parcial."
 ```
 
 ## 1. Correspondência modelo ↔ código (B01, B02, B03)
@@ -185,6 +213,9 @@ membros reais destes arquivos, conferidos contra o código desta mesma versão d
 | `Relatorio` | `Relatorios/Relatorio.cs` | Resumo do procedimento e assinaturas por perfil |
 | `IBalanca` / `BalancaSimulada` / `BalancaComRuido` | `Hardware/` | Contrato e implementações da pesagem |
 | `ServicoDePesagem` | `Servicos/ServicoDePesagem.cs` | Liga a balança ao procedimento |
+| `ServicoDeInicioDeProcedimento` | `Servicos/ServicoDeInicioDeProcedimento.cs` | RN7: confere se a sala está livre antes de iniciar |
+| `SalaCirurgica` | `Cirurgias/SalaCirurgica.cs` | Padroniza o nome da sala ("sala 02" → "Sala 2") |
+| `IRepositorioDeProcedimentos` | `Persistencia/IRepositorioDeProcedimentos.cs` | Acesso ao agregado (consultas por status e por sala) |
 
 O modelo **não é cópia** do banco: `ProcedimentoId`, `InstrumentoId`, `PacienteId`, `CirurgiaoId` e
 `InstrumentistaId` são colunas de chave estrangeira criadas pelo EF Core (`Persistencia/ScanOpsDbContext.cs`)
@@ -229,11 +260,15 @@ Testes de auditoria do encapsulamento que sustenta a composição: `ItemProcedim
 
 ## 5. Invariante e objeto responsável (B07)
 
-> **Invariante:** um `Procedimento` `Finalizado` ou `Cancelado` não aceita alteração de contagem;
-> somente o próprio `Procedimento` altera seu `Status` e seus itens; e uma operação recusada não
-> deixa estado parcial (nem no objeto, nem no banco).
+> **Invariante:** um `Procedimento` `Finalizado` ou `Cancelado` (histórico) não aceita nenhuma
+> alteração; somente o próprio `Procedimento` altera seu `Status` e seus itens; e uma operação recusada
+> não deixa estado parcial (nem no objeto, nem no banco).
 
 - **Responsável:** `Procedimento` (raiz do agregado).
-- **Como protege:** `Status` e `Observacoes` com `private set`; `GarantirContagemPermitida()` antes de toda alteração de contagem; `Finalizar` valida tudo **antes** de alterar qualquer coisa; `ItemProcedimento` só é alterável por métodos `internal` chamados pelo `Procedimento`.
-- **Testes:** `ProcedimentoFinalizado_RecusaTodaAlteracaoEPermaneceIntacto`, `FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado`, `FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco`.
+- **Como protege:** todos os dados (tipo, sala, descrição, pessoas, datas, justificativa, motivo, `Status`, `Observacoes`) com `private set`, definidos no construtor ou pelos métodos de transição; `GarantirContagemPermitida()` antes de toda alteração de contagem; `Iniciar`, `Finalizar`, `Cancelar` e `AdicionarInstrumento` recusam fora do estado certo; `Finalizar` valida tudo **antes** de alterar qualquer coisa; `ItemProcedimento` só é alterável por métodos `internal` chamados pelo `Procedimento`. Na API não há rota de edição nem de exclusão de procedimento.
+- **Testes:** `ProcedimentoFinalizado_RecusaTodaAlteracaoEPermaneceIntacto`, `FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado`, `FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco`, `DadosDoProcedimento_NaoTemSetterPublico`, `ProcedimentoFinalizado_RecusaTodaOperacaoPelaApi`, `Procedimento_NaoTemRotaDeEdicaoNemDeExclusao`.
+
+**Invariante entre vários objetos (RN7):** no máximo um `Procedimento` `EmAndamento` por sala. Nenhum
+procedimento sozinho consegue garanti-la; o responsável é `ServicoDeInicioDeProcedimento`, com o índice
+único parcial do banco como proteção extra (ver [analise-modelo.md](analise-modelo.md), decisão 4).
 - **Limite conhecido:** `internal` protege contra outros projetos (inclusive os testes), mas não contra código dentro do próprio projeto da API, como `Program.cs`. Ver [auditoria-final.md](auditoria-final.md).

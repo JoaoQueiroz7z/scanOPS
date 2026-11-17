@@ -40,13 +40,21 @@ export const instrumentos = {
 }
 export const pacientes = crud('pacientes')
 
+// Todas as operações identificam o procedimento pelo id: várias salas podem ter
+// procedimentos em andamento ao mesmo tempo.
 export const procedimentos = {
   criar: d => http('/api/procedimentos', { method: 'POST', body: d }),
-  atual: () => http('/api/procedimento-atual'),
+  obter: id => http(`/api/procedimentos/${id}`),
+  historico: () => http('/api/procedimentos/historico'),
+  planejados: () => http('/api/procedimentos/planejados'),
   iniciar: id => http(`/api/procedimentos/${id}/iniciar`, { method: 'POST' }),
   cancelar: (id, motivo) => http(`/api/procedimentos/${id}/cancelar`, { method: 'POST', body: { motivo } }),
-  entrada: (itemId, quantidade) => http(`/api/procedimento-atual/itens/${itemId}/entrada`, { method: 'POST', body: { quantidade } }),
-  saida: (itemId, d) => http(`/api/procedimento-atual/itens/${itemId}/saida`, { method: 'POST', body: d }),
-  pesar: itemId => http(`/api/procedimento-atual/itens/${itemId}/pesar`, { method: 'POST' }),
-  finalizar: justificativa => http('/api/procedimento-atual/finalizar', { method: 'POST', body: { justificativa } }),
+  entrada: (id, itemId, quantidade) => http(`/api/procedimentos/${id}/itens/${itemId}/entrada`, { method: 'POST', body: { quantidade } }),
+  saida: (id, itemId, d) => http(`/api/procedimentos/${id}/itens/${itemId}/saida`, { method: 'POST', body: d }),
+  pesar: (id, itemId) => http(`/api/procedimentos/${id}/itens/${itemId}/pesar`, { method: 'POST' }),
+  finalizar: (id, justificativa) => http(`/api/procedimentos/${id}/finalizar`, { method: 'POST', body: { justificativa } }),
+}
+
+export const salas = {
+  emUso: () => http('/api/salas/em-uso'),
 }

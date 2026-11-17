@@ -79,6 +79,68 @@ do estado do procedimento, e a alternativa A já se mostrou incapaz de protegê-
 
 ---
 
+## Decisão 3 — Histórico com "foto" do instrumento × consulta ao cadastro atual
+
+**Contexto.** O histórico de cirurgias precisa mostrar, para cada item, o instrumento usado e o peso
+de referência que valia na conferência (RN4). Mas o cadastro de instrumentos muda: um instrumento
+pode ser renomeado ("Pinça Kelly" → "Pinça Kelly Curva") ou ter o peso de referência corrigido.
+
+**Alternativa A — consultar o dado atual.** O item guarda só a ligação com o `Instrumento`; nome e peso
+são lidos do cadastro na hora de mostrar (era assim antes: `Instrumento.Nome`, `Instrumento.PesoReferencia`).
+
+**Alternativa B (escolhida) — guardar uma "foto".** Quando o instrumento entra no procedimento
+(`Procedimento.AdicionarInstrumento` → construtor de `ItemProcedimento`), o item copia
+`NomeInstrumento` e `PesoReferencia`. A ligação com o `Instrumento` continua existindo (para saber
+qual instrumento foi usado e impedir sua exclusão), mas o que se mostra e o que a RN4 confere é a foto.
+
+| Critério | A — dado atual | B — foto no item |
+|---|---|---|
+| Fidelidade do histórico | Um registro cirúrgico antigo passa a mostrar um nome que não existia na época | Mostra exatamente o que foi usado e conferido |
+| Conferência de peso (RN4) | Se o peso cadastrado for corrigido no meio da cirurgia, um item que conferia passa a divergir (ou o contrário) | O critério fica fixo desde o planejamento |
+| Auditoria | Não dá para reconstituir por que a cirurgia foi aceita | A justificativa e os pesos do momento ficam juntos |
+| Custo | Nenhum dado repetido | Duas colunas a mais por item (`NomeInstrumento`, `PesoReferencia`) |
+| Correções de cadastro | Aparecem em tudo, inclusive no passado | Valem só para procedimentos novos |
+
+**Por que não fotografar também paciente e cirurgião.** Para pessoas, a alternativa A é a certa:
+uma correção de nome (erro de digitação) deve aparecer em todos os registros, e o vínculo com a pessoa
+é o que importa clinicamente. Para instrumentos, o que importa é a especificação do objeto usado,
+que pode mudar no cadastro sem que o objeto da cirurgia mude.
+
+**Evidências.** `Contagem/ItemProcedimento.cs` (`NomeInstrumento`, `PesoReferencia`, `PesoEsperado()`);
+testes `Foto_InstrumentoRenomeadoEComPesoCorrigidoDepois_NaoMudaOItem` (API) e
+`Foto_ItemGuardaNomeEPesoDoMomentoDoPlanejamento`, `Foto_RN4UsaOPesoDaFoto` (domínio).
+
+**Conclusão.** B para instrumentos, porque o histórico é um registro cirúrgico e precisa refletir a
+cirurgia como ela aconteceu; A para pessoas, porque correções de cadastro devem valer em todo lugar.
+
+---
+
+## Decisão 4 — RN7 num serviço de domínio × dentro do `Procedimento`
+
+**Contexto.** RN7: só um procedimento `EmAndamento` por sala. Para saber se a sala está livre é preciso
+olhar **outros** procedimentos.
+
+**Alternativa A — dentro de `Procedimento.Iniciar()`.** O procedimento teria de receber a lista de todos os
+outros procedimentos (ou o repositório) para conferir a sala. O domínio passaria a depender da
+persistência e o método ficaria responsável por algo que não é dele.
+
+**Alternativa B (escolhida) — serviço de domínio.** `Servicos/ServicoDeInicioDeProcedimento` consulta o
+repositório (`ObterEmAndamentoNaSala`) e só então chama `Procedimento.Iniciar()`, que continua cuidando
+só da RN1. Proteção extra: índice único parcial no banco (`Sala` onde `Status = EmAndamento`), cuja
+violação o repositório converte em `RegraDeNegocioException`.
+
+| Critério | A — no Procedimento | B — serviço + índice |
+|---|---|---|
+| Responsabilidade | O objeto passaria a cuidar de uma regra entre vários objetos | Cada um cuida do que conhece: o procedimento do próprio estado; o serviço da ocupação da sala |
+| Dependências | Domínio dependeria do repositório | O domínio continua sem saber de banco; o serviço depende da interface `IRepositorioDeProcedimentos` |
+| Concorrência | Dois pedidos simultâneos passariam pela checagem em memória | O índice do banco barra o segundo |
+| Risco | — | A regra fica fora do agregado: quem chamar `Procedimento.Iniciar()` direto contorna a RN7 (só a rota usa o serviço; o índice cobre a gravação) |
+
+**Evidências.** `Servicos/ServicoDeInicioDeProcedimento.cs`, `Persistencia/ScanOpsDbContext.cs` (índice),
+`Persistencia/RepositorioDeProcedimentos.cs` (conversão do erro); testes em `tests/ScanOPS.Tests/Api/SalasRn7Tests.cs`.
+
+---
+
 ## Decisão complementar — estado nomeado (enum) × booleanos
 
 `Procedimento` usa `StatusProcedimento` (`Planejado`, `EmAndamento`, `Finalizado`, `Cancelado`) em

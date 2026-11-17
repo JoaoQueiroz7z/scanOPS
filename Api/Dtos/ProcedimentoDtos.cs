@@ -51,8 +51,8 @@ public record ItemProcedimentoResposta(
     string Status)
 {
     public static ItemProcedimentoResposta De(ItemProcedimento i) => new(
-        i.Id, i.Instrumento.Nome, i.QuantidadePrevista, i.QuantidadeInicial, i.QuantidadeFinal,
-        i.Diferenca, i.PesoMedido, i.Instrumento.PesoReferencia, i.PesoEsperado(), i.ToleranciaPeso,
+        i.Id, i.NomeInstrumento, i.QuantidadePrevista, i.QuantidadeInicial, i.QuantidadeFinal,
+        i.Diferenca, i.PesoMedido, i.PesoReferencia, i.PesoEsperado(), i.ToleranciaPeso,
         i.ConferePeso(), i.PossuiDivergencia(), i.IdentificadoPorCamera, i.Status.ToString());
 }
 
