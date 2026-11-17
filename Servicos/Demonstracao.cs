@@ -48,7 +48,7 @@ public static class Demonstracao
         }
 
         foreach (var item in procedimento.ObterDiferencas())
-            Console.WriteLine($"Faltando: {item.Instrumento.Nome} (diferença: {item.Diferenca})");
+            Console.WriteLine($"Faltando: {item.NomeInstrumento} (diferença: {item.Diferenca})");
 
         procedimento.Finalizar("Tesoura localizada fora da sala, conferida manualmente.");
         Console.WriteLine($"Status final: {procedimento.Status}");
