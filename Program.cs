@@ -157,7 +157,7 @@ app.MapDelete("/api/pacientes/{id}", (Guid id, ScanOpsDbContext db) =>
     if (item is null) return Results.NotFound();
 
     if (db.Procedimentos.Any(p => p.Paciente.Id == id))
-        throw new RegraDeNegocioException("Paciente com procedimento registrado não pode ser excluído.");
+        throw new RegraDeNegocioException("Paciente com procedimento registrado não pode ser excluído: o histórico cirúrgico precisa ser preservado.");
 
     db.Pacientes.Remove(item);
     db.SaveChanges();
@@ -191,15 +191,28 @@ app.MapPost("/api/procedimentos", (NovoProcedimentoRequisicao dados, ScanOpsDbCo
 static Procedimento ObterPorId(IRepositorioDeProcedimentos repositorio, Guid id) =>
     repositorio.ObterPorId(id) ?? throw new KeyNotFoundException("Procedimento não encontrado.");
 
-app.MapGet("/api/procedimentos/{id}", (Guid id, IRepositorioDeProcedimentos repositorio) =>
-    ProcedimentoResposta.De(ObterPorId(repositorio, id)));
+// Histórico: Finalizados e Cancelados, os mais recentes primeiro. Só leitura: não existe
+// rota de edição (PUT) nem de exclusão (DELETE) de procedimento.
+app.MapGet("/api/procedimentos/historico", (IRepositorioDeProcedimentos repositorio) =>
+    repositorio.ListarPorStatus(StatusProcedimento.Finalizado, StatusProcedimento.Cancelado)
+        .OrderByDescending(p => p.DataHoraFim)
+        .Select(ProcedimentoResumoResposta.De).ToList());
 
-// RN1: só inicia se Planejado. Depois de iniciado, passa a ser o "procedimento atual".
+// Planejados ainda não iniciados (para iniciar ou cancelar depois).
+app.MapGet("/api/procedimentos/planejados", (IRepositorioDeProcedimentos repositorio) =>
+    repositorio.ListarPorStatus(StatusProcedimento.Planejado)
+        .OrderBy(p => p.Sala).ThenBy(p => p.Tipo)
+        .Select(ProcedimentoResumoResposta.De).ToList());
+
+// Detalhe completo (dados, datas, duração, justificativa/motivo e itens).
+app.MapGet("/api/procedimentos/{id:guid}", (Guid id, IRepositorioDeProcedimentos repositorio) =>
+    ProcedimentoDetalheResposta.De(ObterPorId(repositorio, id)));
+
 // RN1 (só Planejado) e RN7 (sala livre), pelo serviço de domínio.
-app.MapPost("/api/procedimentos/{id}/iniciar", (Guid id, ServicoDeInicioDeProcedimento inicio) =>
+app.MapPost("/api/procedimentos/{id:guid}/iniciar", (Guid id, ServicoDeInicioDeProcedimento inicio) =>
     Results.Ok(ProcedimentoResposta.De(inicio.Iniciar(id))));
 
-app.MapPost("/api/procedimentos/{id}/cancelar", (Guid id, CancelarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
+app.MapPost("/api/procedimentos/{id:guid}/cancelar", (Guid id, CancelarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
 {
     var procedimento = ObterPorId(repositorio, id);
     procedimento.Cancelar(dados.Motivo);
@@ -207,47 +220,74 @@ app.MapPost("/api/procedimentos/{id}/cancelar", (Guid id, CancelarRequisicao dad
     return Results.Ok(ProcedimentoResposta.De(procedimento));
 });
 
-// ===================== PROCEDIMENTO ATUAL =====================
-// Cada rota: carrega o agregado pelo repositório -> chama o método de domínio
-// (que aplica as regras RN1..RN5) -> grava. Se o domínio recusar, nada é gravado.
+// ===================== SALAS =====================
+
+// Salas ocupadas: o procedimento EmAndamento de cada uma (RN7 garante no máximo um por sala).
+app.MapGet("/api/salas/em-uso", (IRepositorioDeProcedimentos repositorio) =>
+    repositorio.ListarPorStatus(StatusProcedimento.EmAndamento)
+        .OrderBy(p => p.Sala)
+        .Select(SalaEmUsoResposta.De).ToList());
+
+// ===================== OPERAÇÃO (contagem e finalização) =====================
+// Cada operação: carrega o agregado -> chama o método de domínio (que aplica as regras)
+// -> grava. Se o domínio recusar, nada é gravado. As mesmas funções atendem as rotas por id
+// (usadas pelo front) e as rotas antigas /api/procedimento-atual (mantidas por compatibilidade).
+
+static IResult Entrada(Procedimento procedimento, Guid itemId, EntradaRequisicao dados, IRepositorioDeProcedimentos repositorio)
+{
+    procedimento.RegistrarEntrada(itemId, dados.Quantidade);
+    repositorio.Salvar();
+    return Results.Ok();
+}
+
+static IResult Saida(Procedimento procedimento, Guid itemId, SaidaRequisicao dados, IRepositorioDeProcedimentos repositorio)
+{
+    procedimento.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
+    repositorio.Salvar();
+    return Results.Ok();
+}
+
+static IResult Pesar(Procedimento procedimento, Guid itemId, ServicoDePesagem pesagem, IRepositorioDeProcedimentos repositorio)
+{
+    var peso = pesagem.PesarItem(procedimento, itemId);
+    repositorio.Salvar();
+    return Results.Ok(new PesagemResposta(peso));
+}
+
+static IResult Finalizar(Procedimento procedimento, FinalizarRequisicao dados, IRepositorioDeProcedimentos repositorio)
+{
+    procedimento.Finalizar(dados.Justificativa);
+    repositorio.Salvar();
+    return Results.Ok(new FinalizacaoResposta(procedimento.Status.ToString()));
+}
+
+// Rotas por id: várias salas podem ter procedimentos em andamento ao mesmo tempo.
+app.MapPost("/api/procedimentos/{id:guid}/itens/{itemId:guid}/entrada", (Guid id, Guid itemId, EntradaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
+    Entrada(ObterPorId(repositorio, id), itemId, dados, repositorio));
+app.MapPost("/api/procedimentos/{id:guid}/itens/{itemId:guid}/saida", (Guid id, Guid itemId, SaidaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
+    Saida(ObterPorId(repositorio, id), itemId, dados, repositorio));
+app.MapPost("/api/procedimentos/{id:guid}/itens/{itemId:guid}/pesar", (Guid id, Guid itemId, ServicoDePesagem pesagem, IRepositorioDeProcedimentos repositorio) =>
+    Pesar(ObterPorId(repositorio, id), itemId, pesagem, repositorio));
+app.MapPost("/api/procedimentos/{id:guid}/finalizar", (Guid id, FinalizarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
+    Finalizar(ObterPorId(repositorio, id), dados, repositorio));
+
+// ===================== PROCEDIMENTO ATUAL (rotas antigas, mantidas por compatibilidade) =====================
+// "Atual" = procedimento com início mais recente (qualquer status). Com várias salas isso é
+// ambíguo, por isso o front usa as rotas por id; estas continuam para os testes e evidências existentes.
 
 static Procedimento ObterAtual(IRepositorioDeProcedimentos repositorio) =>
     repositorio.ObterAtual() ?? throw new KeyNotFoundException("Nenhum procedimento cadastrado.");
 
 app.MapGet("/api/procedimento-atual", (IRepositorioDeProcedimentos repositorio) =>
     ProcedimentoResposta.De(ObterAtual(repositorio)));
-
 app.MapPost("/api/procedimento-atual/itens/{itemId}/entrada", (Guid itemId, EntradaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterAtual(repositorio);
-    procedimento.RegistrarEntrada(itemId, dados.Quantidade);
-    repositorio.Salvar();
-    return Results.Ok();
-});
-
+    Entrada(ObterAtual(repositorio), itemId, dados, repositorio));
 app.MapPost("/api/procedimento-atual/itens/{itemId}/saida", (Guid itemId, SaidaRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterAtual(repositorio);
-    procedimento.RegistrarSaida(itemId, dados.Quantidade, dados.PesoMedido, dados.IdentificadoPorCamera);
-    repositorio.Salvar();
-    return Results.Ok();
-});
-
+    Saida(ObterAtual(repositorio), itemId, dados, repositorio));
 app.MapPost("/api/procedimento-atual/itens/{itemId}/pesar", (Guid itemId, ServicoDePesagem pesagem, IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterAtual(repositorio);
-    var peso = pesagem.PesarItem(procedimento, itemId);
-    repositorio.Salvar();
-    return Results.Ok(new PesagemResposta(peso));
-});
-
+    Pesar(ObterAtual(repositorio), itemId, pesagem, repositorio));
 app.MapPost("/api/procedimento-atual/finalizar", (FinalizarRequisicao dados, IRepositorioDeProcedimentos repositorio) =>
-{
-    var procedimento = ObterAtual(repositorio);
-    procedimento.Finalizar(dados.Justificativa);
-    repositorio.Salvar();
-    return Results.Ok(new FinalizacaoResposta(procedimento.Status.ToString()));
-});
+    Finalizar(ObterAtual(repositorio), dados, repositorio));
 
 app.Run();
 
