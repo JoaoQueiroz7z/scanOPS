@@ -22,13 +22,13 @@
     },
     "A03": {
       "status": "atendido",
-      "resumo": "Regras RN1 a RN6 implementadas no domínio e chamadas pelas rotas da API (RN6: instrumento inativo não entra em procedimento novo).",
+      "resumo": "Regras RN1 a RN7 implementadas no domínio e chamadas pelas rotas da API (RN6: instrumento inativo não entra em procedimento novo; RN7: uma sala, um procedimento em andamento, via serviço de domínio).",
       "evidencias": ["Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs", "Program.cs", "docs/av2/especificacao.md", "docs/av2/rastreabilidade.md"],
       "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
     },
     "A04": {
       "status": "atendido",
-      "resumo": "Pesagem e finalização: ServicoDePesagem usa IBalanca e Procedimento; Procedimento consulta ItemProcedimento, que usa Instrumento.PesoReferencia.",
+      "resumo": "Pesagem e finalização: ServicoDePesagem usa IBalanca e Procedimento; Procedimento consulta ItemProcedimento (peso de referência da foto). Início: ServicoDeInicioDeProcedimento consulta o repositório (RN7) e chama Procedimento.Iniciar (RN1).",
       "evidencias": ["Servicos/ServicoDePesagem.cs", "Cirurgias/Procedimento.cs", "Contagem/ItemProcedimento.cs"],
       "testes": ["tests/ScanOPS.Tests/Hardware/PolimorfismoBalancaTests.cs#MesmoServico_ComQualquerBalanca_GravaPesoQueRespeitaRN4", "tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs#ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco"]
     },
@@ -40,7 +40,7 @@
     },
     "A06": {
       "status": "atendido",
-      "resumo": "Transições proibidas lançam RegraDeNegocioException sem alterar objeto nem banco; Finalizar valida antes de alterar.",
+      "resumo": "Transições proibidas lançam RegraDeNegocioException sem alterar objeto nem banco; Finalizar valida antes de alterar; iniciar em sala ocupada (RN7) é recusado e nada é gravado.",
       "evidencias": ["Cirurgias/Procedimento.cs", "docs/av2/evidencias/invariante-finalizar.txt"],
       "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs#FinalizarRecusadoPorDivergencia_NaoAlteraNenhumEstado", "tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs#FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco", "tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs#RN2_Violacao_FinalizarPlanejado_LancaEMantemPlanejado"]
     },
@@ -88,13 +88,13 @@
     },
     "B07": {
       "status": "atendido",
-      "resumo": "Invariante do agregado e objeto responsável (Procedimento).",
+      "resumo": "Invariante do agregado e objeto responsável (Procedimento: procedimento encerrado não aceita nenhuma alteração); invariante entre vários objetos (RN7) com responsável ServicoDeInicioDeProcedimento.",
       "evidencias": ["docs/av2/modelo-classes.md#5-invariante-e-objeto-responsável-b07"],
       "testes": ["tests/ScanOPS.Tests/Regras/InvarianteProcedimentoTests.cs"]
     },
     "B08": {
       "status": "atendido",
-      "resumo": "Duas decisões comparando alternativas: IBalanca x classe concreta; ItemProcedimento no agregado x entidade independente.",
+      "resumo": "Quatro decisões comparando alternativas: IBalanca x classe concreta; ItemProcedimento no agregado x entidade independente; histórico com foto do instrumento x dado atual; RN7 em serviço de domínio x dentro do Procedimento.",
       "evidencias": ["docs/av2/analise-modelo.md"]
     },
     "C01": {
@@ -180,7 +180,7 @@
     },
     "F01": {
       "status": "atendido",
-      "resumo": "Sucesso e violação para RN1 a RN6 (mais de 10 cenários).",
+      "resumo": "Sucesso e violação para RN1 a RN7 (mais de 10 cenários).",
       "evidencias": ["docs/av2/rastreabilidade.md#1-regras-de-negócio"],
       "testes": ["tests/ScanOPS.Tests/Regras/RegrasDeNegocioTests.cs"]
     },
@@ -191,9 +191,9 @@
     },
     "F03": {
       "status": "atendido",
-      "resumo": "Testes de integração: chamada HTTP, regra aplicada e leitura do SQLite com contexto novo.",
+      "resumo": "Testes de integração: chamada HTTP, regra aplicada (inclusive RN7) e leitura do SQLite com contexto novo.",
       "evidencias": ["tests/ScanOPS.Tests/Infra/ApiDeTeste.cs", "docs/av2/evidencias/persistencia-sqlite.txt"],
-      "testes": ["tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs", "tests/ScanOPS.Tests/Api/CicloDeVidaProcedimentoApiTests.cs"]
+      "testes": ["tests/ScanOPS.Tests/Api/PersistenciaIntegracaoTests.cs", "tests/ScanOPS.Tests/Api/CicloDeVidaProcedimentoApiTests.cs", "tests/ScanOPS.Tests/Api/SalasRn7Tests.cs", "tests/ScanOPS.Tests/Api/HistoricoESalasTests.cs"]
     },
     "F04": {
       "status": "atendido",
@@ -212,7 +212,7 @@
     },
     "G01": {
       "status": "atendido",
-      "resumo": "Especificação dos 3 fluxos, 6 regras (RN1 a RN6), estados e critérios de aceitação Dado/Quando/Então.",
+      "resumo": "Especificação dos fluxos F1 a F4, 7 regras (RN1 a RN7), estados e critérios de aceitação Dado/Quando/Então.",
       "evidencias": ["docs/av2/especificacao.md"]
     },
     "G02": {

@@ -22,6 +22,8 @@
 | 009 | Documentação como contexto para desenvolvimento com IA | Aceito | Sim |
 | 010 | Regra de negócio × falha excepcional, com tratamento central | Aceito | Sim |
 | 011 | Regras no domínio e `ItemProcedimento` dentro do agregado | Aceito | Sim |
+| 012 | RN7 (sala ocupada) em serviço de domínio, com índice único parcial | Aceito | Sim |
+| 013 | Histórico com "foto" do instrumento no item | Aceito | Sim |
 
 ---
 
@@ -135,6 +137,24 @@
 - **Decisão:** As regras ficam nos métodos do domínio. `Procedimento` é a raiz do agregado: só ele cria e altera `ItemProcedimento` (construtor e métodos `internal`, lista `IReadOnlyList`) e só ele muda o próprio status. `Finalizar` valida tudo antes de alterar qualquer coisa. Serviços existem apenas para coordenar o que não pertence ao domínio (`ServicoDePesagem`, que liga a balança ao procedimento).
 - **Consequências:** (+) a invariante "registro fechado não muda" tem um único guardião; (−) é preciso carregar o procedimento inteiro para alterar um item.
 - **Implementação:** commits `eb9a8ed` (correção) e `4495c04` (encapsulamento). Comparação com a alternativa em [`av2/analise-modelo.md`](av2/analise-modelo.md); depuração do defeito em [`av2/registro-depuracao.md`](av2/registro-depuracao.md).
+
+## ADR-012 — RN7 (sala ocupada) em serviço de domínio, com índice único parcial
+
+- **Status:** Aceito
+- **Contexto:** Com o controle de salas, pode haver vários procedimentos em andamento ao mesmo tempo, mas nunca dois na mesma sala. A regra depende de outros procedimentos, então um `Procedimento` sozinho não consegue garanti-la.
+- **Decisão:** `Servicos/ServicoDeInicioDeProcedimento` consulta o repositório (`ObterEmAndamentoNaSala`) antes de chamar `Procedimento.Iniciar()`. A sala é gravada padronizada (`Cirurgias/SalaCirurgica`, "sala 02" → "Sala 2"). Proteção extra: índice único parcial no SQLite (`Sala` onde `Status = EmAndamento`); a violação é convertida em `RegraDeNegocioException` pelo repositório. A operação passou a identificar o procedimento pelo id (`/api/procedimentos/{id}/...`); as rotas `/api/procedimento-atual` ficaram por compatibilidade.
+- **Alternativas:** checar dentro do `Procedimento` (o domínio dependeria do repositório); só o índice do banco (a mensagem ao usuário seria genérica e o erro apareceria tarde).
+- **Consequências:** (+) cada classe cuida do que conhece; (+) corrida entre dois pedidos barrada pelo banco; (−) quem chamar `Procedimento.Iniciar()` direto contorna o serviço (o índice ainda barra ao gravar); (−) é preciso apagar o `scanops.db` antigo para o índice ser criado.
+- **Implementação:** detalhes em [`av2/analise-modelo.md`](av2/analise-modelo.md) (decisão 4); testes em `tests/ScanOPS.Tests/Api/SalasRn7Tests.cs`.
+
+## ADR-013 — Histórico com "foto" do instrumento no item
+
+- **Status:** Aceito
+- **Contexto:** O histórico de cirurgias precisa mostrar o instrumento e o peso de referência que valiam na cirurgia, mas o cadastro de instrumentos pode ser renomeado ou ter o peso corrigido.
+- **Decisão:** Ao entrar no procedimento, o `ItemProcedimento` guarda `NomeInstrumento` e `PesoReferencia`; a RN4 confere com esse peso. Paciente e cirurgião continuam lidos do cadastro (correções de nome devem valer em tudo).
+- **Alternativas:** ler sempre o cadastro atual (o histórico mudaria retroativamente).
+- **Consequências:** (+) registro fiel ao que aconteceu; (−) duas colunas a mais por item; correções de cadastro valem só para procedimentos novos.
+- **Implementação:** `Contagem/ItemProcedimento.cs`; comparação em [`av2/analise-modelo.md`](av2/analise-modelo.md) (decisão 3).
 
 ---
 

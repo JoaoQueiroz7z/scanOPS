@@ -19,15 +19,23 @@ Arquivos de teste: `Regras/RegrasDeNegocioTests.cs` (RegrasNeg), `Regras/Invaria
 
 | **RN6** instrumento inativo não entra em procedimento novo | `Procedimento.AdicionarInstrumento()` (verifica `Instrumento.Ativo`); `Instrumento.Inativar()/Reativar()` | `POST /api/procedimentos`; `POST /api/instrumentos/{id}/inativar` e `/reativar` | RegrasNeg `RN6_Sucesso_InstrumentoAtivo_EhAdicionado`, `RN6_Sucesso_InstrumentoReativado_VoltaASerAceito`; `InstrumentoAtivoTests` (5 testes) | RegrasNeg `RN6_Violacao_InstrumentoInativo_LancaENaoAlteraLista`; CicloApi `RN6_PlanejarComInstrumentoInativo_Retorna400ENadaEGravado_EReativadoFunciona` |
 
-Total: **6 regras × (sucesso + violação)**, com mais de 10 cenários verificáveis (critério F01).
+| **RN7** uma sala, um procedimento em andamento | `Servicos/ServicoDeInicioDeProcedimento.Iniciar()` + `IRepositorioDeProcedimentos.ObterEmAndamentoNaSala()`; `Cirurgias/SalaCirurgica.Padronizar()`; índice único parcial em `Persistencia/ScanOpsDbContext.cs` | `POST /api/procedimentos/{id}/iniciar` | Rn7 `RN7_SalaLivre_IniciaEGravaEmAndamento`, `RN7_DepoisDeFinalizar_SalaFicaLivreDeNovo`, `RN7_ProcedimentoCanceladoNaoOcupaASala`; Sala `Padronizar_DiferentesFormas_GravaComoSalaX` | Rn7 `RN7_SalaOcupada_Recusa400ComMensagemENadaMudaNoBanco`, `RN7_SalaEscritaDeOutroJeito_EhAMesmaSala` (3 formas), `RN7_IndiceDoBanco_BarraDoisEmAndamentoNaMesmaSalaComoRegraENaoErro500` |
+
+Total: **7 regras × (sucesso + violação)**, com mais de 10 cenários verificáveis (critério F01).
+Arquivos novos desta etapa: `Api/SalasRn7Tests.cs` (Rn7), `Dominio/SalaCirurgicaTests.cs` (Sala),
+`Api/HistoricoESalasTests.cs` (Hist), `Dominio/HistoricoDominioTests.cs` (HistDom).
 
 ## 2. Fluxos
 
 | Fluxo | Passos (rotas) | Regras envolvidas | Classes que colaboram | Testes de ponta a ponta |
 |---|---|---|---|---|
-| **F1** Planejar, iniciar e contagem inicial | `POST /api/procedimentos` → `POST /api/procedimentos/{id}/iniciar` → `POST /api/procedimento-atual/itens/{id}/entrada` | RN1, RN5, RN6 | `Procedimento`, `ItemProcedimento`, `Instrumento`, `Paciente`, `Usuario`, `RepositorioDeProcedimentos` | CicloApi `Planejar_CriaProcedimentoPlanejadoComOsItensPrevistos`, `RN1_Iniciar_...`; Persistência `ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco` (entrada gravada) |
-| **F2** Contagem final e conferência de peso | `POST .../saida` e/ou `POST .../pesar` → `GET /api/procedimento-atual` | RN4, RN5 | `Procedimento`, `ItemProcedimento`, `Instrumento` (peso de referência), `ServicoDePesagem`, `IBalanca` | Falhas `Api_PesarComBalancaFuncionando_Retorna200EGravaPesoNoItem`, `F3_Api_ErroNaBalanca_...`; Balança `MesmoServico_ComQualquerBalanca_...` |
-| **F3** Finalização com/sem justificativa | `POST /api/procedimento-atual/finalizar` | RN2, RN3, RN4 | `Procedimento`, `ItemProcedimento` | Persistência `ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco`, `FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco`; Falhas `F1_Api_...`, `F2_Api_...` |
+| **F1** Planejar, iniciar e contagem inicial | `POST /api/procedimentos` → `POST /api/procedimentos/{id}/iniciar` → `POST /api/procedimentos/{id}/itens/{itemId}/entrada` | RN1, RN5, RN6, RN7 | `Procedimento`, `ItemProcedimento`, `Instrumento`, `Paciente`, `Usuario`, `SalaCirurgica`, `ServicoDeInicioDeProcedimento`, `RepositorioDeProcedimentos` | CicloApi `Planejar_CriaProcedimentoPlanejadoComOsItensPrevistos`, `RN1_Iniciar_...`; Persistência `ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco` (entrada gravada) |
+| **F2** Contagem final e conferência de peso | `POST /api/procedimentos/{id}/itens/{itemId}/saida` e/ou `.../pesar` → `GET /api/procedimentos/{id}` | RN4, RN5 | `Procedimento`, `ItemProcedimento`, `Instrumento` (peso de referência), `ServicoDePesagem`, `IBalanca` | Falhas `Api_PesarComBalancaFuncionando_Retorna200EGravaPesoNoItem`, `F3_Api_ErroNaBalanca_...`; Balança `MesmoServico_ComQualquerBalanca_...` |
+| **F3** Finalização com/sem justificativa | `POST /api/procedimentos/{id}/finalizar` | RN2, RN3, RN4 | `Procedimento`, `ItemProcedimento` | Persistência `ContagemEFinalizacaoComJustificativa_SaoGravadasNoBanco`, `FinalizacaoRecusada_NaoGravaNenhumaAlteracaoNoBanco`; Falhas `F1_Api_...`, `F2_Api_...`; Hist `Detalhe_FinalizadoTrazTodasAsInformacoesEOsItens` |
+| **F4** Histórico e salas em uso | `GET /api/salas/em-uso`, `GET /api/procedimentos/historico`, `GET /api/procedimentos/{id}` | RN7; invariante do histórico | `Procedimento`, `ItemProcedimento` (foto), `RepositorioDeProcedimentos` | Hist `Historico_ListaSoFinalizadosECancelados_MaisRecentePrimeiro`, `Procedimento_NaoTemRotaDeEdicaoNemDeExclusao`, `ProcedimentoFinalizado_RecusaTodaOperacaoPelaApi`, `ExcluirPacienteUsadoEmProcedimento_Retorna400EPacientePermanece`, `Foto_InstrumentoRenomeadoEComPesoCorrigidoDepois_NaoMudaOItem`, `SalasEmUso_MostraCadaSalaOcupadaComSeuProcedimento` |
+
+As rotas antigas `/api/procedimento-atual/...` usam as mesmas funções das rotas por id e continuam
+cobertas pelos testes anteriores (`ContagemAposFinalizarTests`, `SituacoesDeFalhaTests`, `PersistenciaIntegracaoTests`).
 
 ## 3. Invariante, exceções e polimorfismo
 

@@ -12,7 +12,7 @@ regras; os detalhes técnicos não devem chegar ao usuário).
 | F2 | Registrar contagem (entrada/saída/peso) em procedimento que não está em andamento, ou com quantidade inválida | Regra de negócio (RN5) | `RegraDeNegocioException` | **400** `{ "erro": "Só é possível registrar contagem em procedimento em andamento." }` (ou a mensagem da quantidade) | Contagem não muda, no objeto e no banco |
 | F3 | Balança indisponível (não responde ou erro do driver) | Excepcional | `FalhaDeHardwareException` (com a exceção original em `InnerException`) | **503** `{ "erro": "Equipamento de medição indisponível. Verifique a conexão ou faça a conferência manual." }` | Peso do item não muda; detalhe técnico vai só para o log; nenhum stack trace na resposta |
 
-Outros casos tratados pelo mesmo mecanismo: recurso inexistente (`KeyNotFoundException` → 404),
+Outros casos tratados pelo mesmo mecanismo: sala ocupada ao iniciar (RN7, `RegraDeNegocioException` → 400, inclusive quando quem barra é o índice único do banco, convertido pelo repositório), recurso inexistente (`KeyNotFoundException` → 404),
 JSON fora do formato (`BadHttpRequestException` → 400 com mensagem genérica) e qualquer erro não
 previsto (→ 500 com mensagem genérica, detalhe no log).
 

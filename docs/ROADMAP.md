@@ -9,11 +9,11 @@
 
 ## Situação atual
 
-- [x] Domínio com regras RN1–RN6 e estados do procedimento
+- [x] Domínio com regras RN1–RN7 e estados do procedimento
 - [x] API com DTOs, tratamento central de erros e rotas de cadastro, planejamento e contagem
 - [x] Banco SQLite (EF Core) criado automaticamente
 - [x] Duas balanças simuladas escolhidas por configuração
-- [x] 103 testes automatizados (domínio, exceções, API e persistência)
+- [x] 148 testes automatizados (domínio, exceções, API e persistência)
 - [x] Documentação da AV2 em `docs/av2/`
 - [x] Front-end com login, procedimento atual, novo procedimento, operação e cadastros, ligado às rotas do back
 - [ ] Câmera integrada à conferência
@@ -64,7 +64,7 @@
 
 ## Fase 3 — Regras de negócio
 
-- [x] RN1–RN6 nos métodos de `Procedimento` e `ItemProcedimento` **(mudou: o plano previa `CirurgiaService`, `ContagemService` e `ConferenciaPesoService`; ver ADR-011)**
+- [x] RN1–RN6 nos métodos de `Procedimento` e `ItemProcedimento`; RN7 no `ServicoDeInicioDeProcedimento` **(mudou: o plano previa `CirurgiaService`, `ContagemService` e `ConferenciaPesoService`; ver ADR-011)**
 - [x] `ServicoDePesagem` (liga a balança ao procedimento)
 - [x] Testes de sucesso e violação para cada regra
 
@@ -92,7 +92,7 @@
 - [x] Usuário logado guardado no navegador (`sessionStorage`)
 - [x] Compilação verificada com `npm run build`
 - [ ] Controlar rotas por perfil
-- [ ] Lista/histórico de procedimentos
+- [x] Salas em uso (com os planejados) e histórico de procedimentos encerrados
 - [ ] Escolher o instrumentista numa lista (falta `GET /api/usuarios` no back)
 - [ ] Câmera ligada ao back (hoje a webcam é só teste visual)
 

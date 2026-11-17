@@ -1,0 +1,23 @@
+# RN7 (sala ocupada) e histórico pela API real, banco novo (2026-11-17 20:33:38)
+# O banco de demonstração já tem a Apendicectomia em andamento na Sala 1.
+## 1) Planejar Hernioplastia na 'Sala 2' e Colecistectomia em 'sala 02' (mesma sala, escrita diferente)
+"tipo":"Hernioplastia","status":"Planejado","sala":"Sala 2"
+"tipo":"Colecistectomia","status":"Planejado","sala":"Sala 2"
+## 2) Iniciar a Hernioplastia
+-> HTTP 200
+## 3) Iniciar a Colecistectomia na mesma sala (RN7: deve ser recusado)
+{"erro":"A Sala 2 já está ocupada pelo procedimento Hernioplastia. Finalize-o antes de iniciar outro nesta sala."}  -> HTTP 400
+## 4) Salas em uso
+[{"sala":"Sala 1","procedimentoId":"d3279699-0e23-42d3-bdee-522b6c8be5df","tipo":"Apendicectomia","paciente":"Paciente Demo","cirurgiao":"Dr. Teste","dataHoraInicio":"2026-11-17T20:33:28.0054916"},{"sala":"Sala 2","procedimentoId":"030787bc-86fd-4ea8-afe2-c6790fa6e82c","tipo":"Hernioplastia","paciente":"Paciente Demo","cirurgiao":"Dr. Teste","dataHoraInicio":"2026-11-17T20:33:47.5825978"}]
+## 5) Finalizar a Hernioplastia (nada contado: sem divergência)
+{"status":"Finalizado"}  -> HTTP 200
+## 6) Salas em uso depois de finalizar
+[{"sala":"Sala 1","procedimentoId":"d3279699-0e23-42d3-bdee-522b6c8be5df","tipo":"Apendicectomia","paciente":"Paciente Demo","cirurgiao":"Dr. Teste","dataHoraInicio":"2026-11-17T20:33:28.0054916"}]
+## 7) Agora a Colecistectomia inicia na Sala 2
+-> HTTP 200
+## 8) Histórico
+[{"id":"030787bc-86fd-4ea8-afe2-c6790fa6e82c","tipo":"Hernioplastia","status":"Finalizado","sala":"Sala 2","paciente":"Paciente Demo","cirurgiao":"Dr. Teste","dataHoraInicio":"2026-11-17T20:33:47.5825978","dataHoraFim":"2026-11-17T20:33:49.2189769","duracaoMinutos":0,"teveDivergencia":false}]
+## 9) Tentar excluir o paciente usado
+{"erro":"Paciente com procedimento registrado não pode ser excluído: o histórico cirúrgico precisa ser preservado."}  -> HTTP 400
+## 10) Tentar editar ou apagar um procedimento do histórico
+PUT -> HTTP 405; DELETE -> HTTP 405

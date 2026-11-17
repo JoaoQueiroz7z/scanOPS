@@ -115,7 +115,8 @@ Também é possível trocar sem editar o arquivo: `$env:Balanca__Tipo = "ComRuid
 - [x] Conferência de contagens e de peso (no domínio)
 - [x] API com rotas de login, instrumentos, pacientes, planejamento/início/cancelamento de procedimentos e contagem
 - [x] Front-end React com as telas: login, procedimento atual, novo procedimento (planejar e iniciar), operação (contagem, pesagem, divergência por item e finalização) e cadastros de instrumentos (com inativar/reativar) e pacientes
-- [x] Regras de negócio RN1 a RN6 no domínio (RN6: instrumento inativo não entra em procedimento novo)
+- [x] Regras de negócio RN1 a RN7 no domínio (RN6: instrumento inativo não entra em procedimento novo; RN7: uma sala, um procedimento em andamento)
+- [x] Histórico de cirurgias (só leitura) e salas em uso
 - [ ] Tela de relatório final
 - [x] Balança simulada: duas implementações (`BalancaSimulada` e `BalancaComRuido`, escolhida por configuração)
 - [x] Tratamento central de erros na API (regra de negócio → 400, equipamento indisponível → 503)
