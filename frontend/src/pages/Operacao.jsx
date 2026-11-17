@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import Camera from '../components/Camera.jsx'
 import { procedimentos } from '../api.js'
 import { normalizarProcedimento, rotuloSala, statusDe } from '../mapeadores.js'
@@ -22,7 +22,7 @@ function Situacao({ item, finalizado }) {
   )
 }
 
-function ItemLinha({ item, executar, finalizado }) {
+function ItemLinha({ procedimentoId, item, executar, finalizado }) {
   const [qE, setQE] = useState(1)
   const [qS, setQS] = useState(1)
   const [peso, setPeso] = useState(() => pesoGravadoNoCampo(item))
@@ -36,7 +36,7 @@ function ItemLinha({ item, executar, finalizado }) {
   async function pesar() {
     setPesando(true)
     // PesagemResposta: { pesoMedido }. O back grava esse peso no item; mostramos o valor gravado.
-    await executar(async () => { const r = await procedimentos.pesar(item.id); setPeso(String(r?.pesoMedido ?? '')) })
+    await executar(async () => { const r = await procedimentos.pesar(procedimentoId, item.id); setPeso(String(r?.pesoMedido ?? '')) })
     setPesando(false)
   }
   return (
@@ -50,12 +50,12 @@ function ItemLinha({ item, executar, finalizado }) {
       </td>
       <td><Situacao item={item} finalizado={finalizado} /></td>
       <td>
-        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.entrada(item.id, Number(qE))) }}>
+        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.entrada(procedimentoId, item.id, Number(qE))) }}>
           <input type="number" min="1" aria-label={`Quantidade de entrada de ${item.nome}`} value={qE} onChange={e => setQE(e.target.value)} />
           <button className="btn pequeno">Registrar entrada</button>
         </form>
         {/* RN5: saída >= 0 (zero = nenhuma unidade voltou). O peso é obrigatório: o back confere o peso (RN4). */}
-        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.saida(item.id, { quantidade: Number(qS), pesoMedido: Number(peso), identificadoPorCamera: camera })) }}>
+        <form className="mini" onSubmit={e => { e.preventDefault(); executar(() => procedimentos.saida(procedimentoId, item.id, { quantidade: Number(qS), pesoMedido: Number(peso), identificadoPorCamera: camera })) }}>
           <input type="number" min="0" aria-label={`Quantidade de saída de ${item.nome}`} value={qS} onChange={e => setQS(e.target.value)} />
           <input type="number" step="any" min="0" required placeholder="Peso (g)" title="Informe o peso ou use Pesar" aria-label={`Peso medido de ${item.nome}`} value={peso} onChange={e => setPeso(e.target.value)} />
           <button type="button" className="btn pequeno claro" onClick={pesar} disabled={pesando}>{pesando ? 'Pesando…' : 'Pesar'}</button>
@@ -68,15 +68,15 @@ function ItemLinha({ item, executar, finalizado }) {
 }
 
 export default function Operacao() {
-  const nav = useNavigate()
+  const { id } = useParams() // /operacao/:id — cada sala tem o seu procedimento em andamento
   const [p, setP] = useState(null)
   const [erro, setErro] = useState('')
   const [justificativa, setJustificativa] = useState('')
   const [final, setFinal] = useState('')
 
   const carregar = useCallback(async () => {
-    try { setP(normalizarProcedimento(await procedimentos.atual())); setErro('') } catch (e) { setErro(e.message) }
-  }, [])
+    try { setP(normalizarProcedimento(await procedimentos.obter(id))); setErro('') } catch (e) { setErro(e.message) }
+  }, [id])
   useEffect(() => { carregar() }, [carregar])
 
   // Executa uma ação, mostra o erro da regra de negócio (se houver) e recarrega o procedimento.
@@ -86,7 +86,7 @@ export default function Operacao() {
   }
   async function finalizar() {
     setErro('')
-    try { const r = await procedimentos.finalizar(justificativa.trim() || null); setFinal(r?.status ?? 'Finalizado'); await carregar() } catch (e) { setErro(e.message) }
+    try { const r = await procedimentos.finalizar(id, justificativa.trim() || null); setFinal(r?.status ?? 'Finalizado'); await carregar() } catch (e) { setErro(e.message) }
   }
 
   if (!p) return <div className="op"><div className="op-topo"><Link className="link claro" to="/">Voltar</Link></div>{erro ? <p className="erro pad" role="alert">{erro}</p> : <p className="pad">Carregando…</p>}</div>
@@ -126,7 +126,7 @@ export default function Operacao() {
           <div className="tabela-rolavel">
             <table className="tabela-conf">
               <thead><tr><th>Instrumento</th><th>Previsto</th><th>Em campo</th><th>Devolvidos</th><th>Em aberto</th><th>Peso</th><th>Situação</th><th>Registrar</th></tr></thead>
-              <tbody>{p.itens.map(i => <ItemLinha key={i.id} item={i} executar={executar} finalizado={st === 'finalizado'} />)}</tbody>
+              <tbody>{p.itens.map(i => <ItemLinha key={i.id} procedimentoId={p.id} item={i} executar={executar} finalizado={st === 'finalizado'} />)}</tbody>
             </table>
           </div>
           {st === 'andamento' && (
@@ -137,7 +137,12 @@ export default function Operacao() {
               <button className={`btn ${alerta.classe === 'erro' ? 'perigo' : 'primario'}`} onClick={finalizar}>Finalizar procedimento</button>
             </div>
           )}
-          {st !== 'andamento' && <p className="mudo">Procedimento {p.status}. {final && `Resultado: ${final}.`}</p>}
+          {st !== 'andamento' && (
+            <p className="mudo">
+              Procedimento {p.status}. {final && `Resultado: ${final}.`}{' '}
+              {(st === 'finalizado' || st === 'cancelado') && <Link className="link claro" to={`/historico/${p.id}`}>Ver no histórico</Link>}
+            </p>
+          )}
         </main>
       </div>
     </div>

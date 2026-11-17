@@ -32,11 +32,12 @@ export default function NovoProcedimento() {
     } catch (err) { setErro(err.message) }
   }
 
-  // O "procedimento atual" do back é o de início mais recente. Um procedimento só planejado
-  // ainda não começou, então ele é iniciado aqui mesmo, pelo id devolvido na criação.
+  // Inicia pelo id devolvido na criação e abre a operação dele. Se a sala já estiver ocupada,
+  // o back recusa (RN7) e a mensagem aparece no cartão; o procedimento continua planejado
+  // e pode ser iniciado depois pela tela Salas em uso.
   async function iniciar() {
     setErro('')
-    try { await procedimentos.iniciar(criado.id); nav('/') } catch (err) { setErro(err.message) }
+    try { await procedimentos.iniciar(criado.id); nav(`/operacao/${criado.id}`) } catch (err) { setErro(err.message) }
   }
 
   if (criado) return (
@@ -44,8 +45,8 @@ export default function NovoProcedimento() {
       <header><h1>Novo procedimento</h1></header>
       <div className="cartao vazio">
         <h2>Procedimento planejado</h2>
-        <p>{criado.tipo} · {criado.itens.length} {criado.itens.length === 1 ? 'instrumento previsto' : 'instrumentos previstos'}.</p>
-        <p className="mudo">Ao iniciar, ele passa a ser o procedimento atual e a contagem pode começar.</p>
+        <p>{criado.tipo} · {criado.sala} · {criado.itens.length} {criado.itens.length === 1 ? 'instrumento previsto' : 'instrumentos previstos'}.</p>
+        <p className="mudo">Ao iniciar, a {criado.sala} fica ocupada e a contagem pode começar. Se preferir iniciar depois, ele fica em Salas em uso, na lista de planejados.</p>
         {erro && <p className="erro" role="alert">{erro}</p>}
         <div className="linha">
           <button className="btn primario" onClick={iniciar}>Iniciar agora</button>

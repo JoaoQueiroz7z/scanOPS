@@ -8,8 +8,9 @@ export default function Shell() {
     <div className="adm">
       <aside className="menu">
         <b className="marca">scanOPS</b>
-        <NavLink to="/" end className={link}>Procedimento atual</NavLink>
+        <NavLink to="/" end className={link}>Salas em uso</NavLink>
         <NavLink to="/novo" className={link}>Novo procedimento</NavLink>
+        <NavLink to="/historico" className={link}>Histórico</NavLink>
         <NavLink to="/instrumentos" className={link}>Instrumentos</NavLink>
         <NavLink to="/pacientes" className={link}>Pacientes</NavLink>
         <div className="menu-rodape">
