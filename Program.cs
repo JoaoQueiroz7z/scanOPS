@@ -167,18 +167,13 @@ app.MapDelete("/api/pacientes/{id}", (Guid id, ScanOpsDbContext db) =>
 
 app.MapPost("/api/procedimentos", (NovoProcedimentoRequisicao dados, ScanOpsDbContext db, IRepositorioDeProcedimentos repositorio) =>
 {
-    var procedimento = new Procedimento
-    {
-        Tipo = dados.Tipo,
-        Sala = dados.Sala,
-        Descricao = dados.Descricao ?? "",
-        Paciente = db.Pacientes.Find(dados.PacienteId)
-            ?? throw new KeyNotFoundException("Paciente não encontrado."),
-        Cirurgiao = db.Usuarios.Find(dados.CirurgiaoId)
-            ?? throw new KeyNotFoundException("Cirurgião não encontrado."),
-        Instrumentista = db.Usuarios.Find(dados.InstrumentistaId)
-            ?? throw new KeyNotFoundException("Instrumentista não encontrado.")
-    };
+    var procedimento = new Procedimento(
+        dados.Tipo,
+        dados.Sala,
+        dados.Descricao,
+        db.Pacientes.Find(dados.PacienteId) ?? throw new KeyNotFoundException("Paciente não encontrado."),
+        db.Usuarios.Find(dados.CirurgiaoId) ?? throw new KeyNotFoundException("Cirurgião não encontrado."),
+        db.Usuarios.Find(dados.InstrumentistaId) ?? throw new KeyNotFoundException("Instrumentista não encontrado."));
 
     foreach (var previsto in dados.Itens ?? [])
     {

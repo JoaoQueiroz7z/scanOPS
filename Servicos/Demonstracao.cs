@@ -16,14 +16,8 @@ public static class Demonstracao
         var cirurgiao = new Usuario { Nome = "Dr. Teste", Cargo = TipoUsuario.Cirurgiao, Crm = "12345" };
         var instrumentista = new Usuario { Nome = "Enf. Teste", Cargo = TipoUsuario.Instrumentista, Coren = "6789" };
 
-        var procedimento = new Procedimento
-        {
-            Tipo = "Apendicectomia",
-            Sala = "Sala 1",
-            Paciente = new Paciente { Nome = "Paciente Teste" },
-            Cirurgiao = cirurgiao,
-            Instrumentista = instrumentista
-        };
+        var procedimento = new Procedimento("Apendicectomia", "Sala 1", null,
+            new Paciente { Nome = "Paciente Teste" }, cirurgiao, instrumentista);
 
         procedimento.AdicionarInstrumento(pinca, 2);
         procedimento.AdicionarInstrumento(tesoura, 1);

@@ -25,14 +25,8 @@ public static class InicializadorDoBanco
         var pinca = new Instrumento { Nome = "Pinça Kelly", Codigo = "P001", Tipo = TipoInstrumento.Pinca, PesoReferencia = 50m };
         var tesoura = new Instrumento { Nome = "Tesoura Mayo", Codigo = "T001", Tipo = TipoInstrumento.Tesoura, PesoReferencia = 80m };
 
-        var procedimento = new Procedimento
-        {
-            Tipo = "Apendicectomia",
-            Sala = "Sala 1",
-            Paciente = new Paciente { Nome = "Paciente Demo" },
-            Cirurgiao = medico,
-            Instrumentista = medico
-        };
+        var procedimento = new Procedimento("Apendicectomia", "Sala 1", null,
+            new Paciente { Nome = "Paciente Demo" }, cirurgiao: medico, instrumentista: medico);
         procedimento.AdicionarInstrumento(pinca, 2);
         procedimento.AdicionarInstrumento(tesoura, 1);
         procedimento.Iniciar();
