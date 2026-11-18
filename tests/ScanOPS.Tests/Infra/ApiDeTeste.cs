@@ -1,6 +1,5 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Data.Sqlite;
 
 namespace ScanOPS.Tests.Infra;
 
@@ -24,15 +23,25 @@ public class ApiDeTeste : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseSetting("ConnectionStrings:ScanOps", $"Data Source={ArquivoDoBanco}");
+        // Pooling=False: cada conexão é fechada de verdade ao terminar, então o arquivo pode ser
+        // apagado sem precisar de SqliteConnection.ClearAllPools(). Esse método é GLOBAL: limpava
+        // as conexões de todos os bancos do processo, inclusive as de outros testes rodando em
+        // paralelo, que falhavam com ObjectDisposedException (erro 500) de vez em quando.
+        builder.UseSetting("ConnectionStrings:ScanOps", $"Data Source={ArquivoDoBanco};Pooling=False");
         _configuracaoExtra?.Invoke(builder);
     }
 
     protected override void Dispose(bool disposing)
     {
         base.Dispose(disposing);
-        SqliteConnection.ClearAllPools(); // libera o arquivo para poder apagar
-        if (File.Exists(ArquivoDoBanco))
-            File.Delete(ArquivoDoBanco);
+        try
+        {
+            if (File.Exists(ArquivoDoBanco))
+                File.Delete(ArquivoDoBanco);
+        }
+        catch (IOException)
+        {
+            // Limpeza é só arrumação da pasta temporária: nunca deve derrubar um teste.
+        }
     }
 }
