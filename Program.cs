@@ -48,11 +48,12 @@ app.MapGet("/api/teste", () => new { mensagem = "API funcionando!" });
 
 app.MapPost("/api/login", (LoginRequisicao dados, ScanOpsDbContext db) =>
 {
+    // Normaliza uma vez só: busca e autenticação usam o mesmo e-mail (espaços nas pontas não recusam o login).
     var email = dados.Email.Trim().ToLower();
     var encontrado = db.Usuarios
         .Where(u => u.Email.ToLower() == email)
         .AsEnumerable()
-        .FirstOrDefault(u => u.Autenticar(dados.Email, dados.Senha));
+        .FirstOrDefault(u => u.Autenticar(email, dados.Senha));
 
     if (encontrado is null)
         return Results.Unauthorized();
